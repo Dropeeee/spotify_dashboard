@@ -1,0 +1,2172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOTIFY DASHBOARD</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <!-- Plotly -->
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+</head>
+
+<body>
+    <div class="container-fluid" style="background-color: #0A0E17; color: #FFFFFF; padding: 20px; max-width: 100%; margin: 0;">
+        
+        <!-- TOAST NOTIFICATIONS CONTAINER -->
+        <div id="toast-container" style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        "></div>
+        
+<!-- HEADER UNIFICADO: TÍTULO + MENUS + FILTROS -->
+<div class="dashboard-header-bar">
+    
+    <!-- TÍTULO -->
+    <div class="header-title">
+        <i class="fas fa-music"></i>
+        SPOTIFY {% if username %}{{ username|upper }}{% else %}ANALYTICS{% endif %}
+    </div>
+    
+    <!-- MENUS DE NAVEGAÇÃO -->
+    <div class="header-menus">
+        <button class="nav-tab active" data-page="main" onclick="switchPage('main')">MAIN</button>
+        <button class="nav-tab" data-page="repeats" onclick="switchPage('repeats')">REPEATS</button>
+        <button class="nav-tab" data-page="history" onclick="switchPage('history')">HISTORY</button>
+    </div>
+    
+    <!-- FILTROS (SEM TÍTULOS "YEAR" E "MONTH") -->
+    <div class="header-filters">
+        <select id="year-filter" class="filter-select">
+            <option value="all">All Years</option>
+        </select>
+        
+        <select id="month-filter" class="filter-select">
+            <option value="all">All Months</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+        </select>
+
+        <select id="results-limit" class="filter-select" onchange="updateResultsLimit()">
+            <option value="10">10 items</option>
+            <option value="20">20 items</option>
+            <option value="50">50 items</option>
+            <option value="100">100 items</option>
+        </select>
+        
+        <button id="apply-filters" class="apply-filters-btn" onclick="applyFilters()">
+            <span id="apply-text">Apply Filters</span>
+            <div id="apply-loading" style="display: none; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid white; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        </button>
+    </div>
+    
+</div>
+
+
+<!-- ========== PÁGINA MAIN ========== -->
+        <div id="page-main" class="page-content" style="display: block;">
+            <!-- MAIN GRID - MANTÉM ORIGINAL -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 25px; margin-bottom: 40px; width: 100%;">
+                
+                <!-- TOP TRACKS -->
+                <div class="section-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <h2 class="section-title" style="margin: 0;">TOP TRACKS</h2>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="tracks-intentional-filter" onchange="toggleTracksIntentional()" style="width: 20px; height: 20px; cursor: pointer; accent-color: #00B39F;">
+                                <span style="color: #00D4B8; font-size: 13px; font-weight: 700;">INTENTIONAL</span>
+                            </label>
+                        </div>
+                        <button id="create-tracks-playlist" class="playlist-btn" title="Create Playlist">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="top-tracks-list" class="data-list">
+                        {% if top_tracks %}
+                            {% for track in top_tracks[:50] %}
+                            <div class="item-row">
+                                <span class="rank">{{ loop.index }}</span>
+                                <div class="item-image">
+                                    <img src="{{ track.image_url or 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+' }}" 
+                                        alt="{{ track.name }}" 
+                                        class="track-image"
+                                        onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
+                                </div>
+                                <div class="item-info">
+                                    <div class="item-name clickable-track" 
+                                        data-type="track" 
+                                        data-uri="{{ track.uri }}"
+                                        data-name="{{ track.name }}"
+                                        data-artist="{{ track.artist }}"
+                                        data-preview="{{ track.preview_url }}"
+                                        data-spotify-url="{{ track.spotify_url }}"
+                                        data-track-id="{{ track.id }}">
+                                        {{ track.name }}
+                                    </div>
+                                    <div class="item-subtitle clickable-artist"
+                                        data-type="artist"
+                                        data-name="{{ track.artist }}">
+                                        {{ track.artist }}
+                                    </div>
+                                </div>
+                                <span class="item-value">{{ track.popularity }}/100</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="loading-container">
+                                <div class="spinner"></div>
+                                <div class="loading-text">Loading tracks...</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- TOP ARTISTS -->
+                <div class="section-card">
+                    <div style="margin-bottom: 20px;">
+                        <h2 class="section-title" style="margin: 0;">TOP ARTISTS</h2>
+                    </div>
+                    <div id="top-artists-list" class="data-list">
+                        <div class="loading-container">
+                            <div class="spinner"></div>
+                            <div class="loading-text">Loading artists...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOP ALBUMS -->
+                <div class="section-card">
+                    <div style="margin-bottom: 20px;">
+                        <h2 class="section-title" style="margin: 0;">TOP ALBUMS</h2>
+                    </div>
+                    <div id="top-albums-list" class="data-list">
+                        <div class="loading-container">
+                            <div class="spinner"></div>
+                            <div class="loading-text">Loading albums...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== PÁGINA REPEATS ========== -->
+        <div id="page-repeats" class="page-content" style="display: none;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 50px; width: 100%;">
+                
+                <!-- REPEAT SPIRALS -->
+                <div class="section-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div style="flex: 1; display: flex; flex-direction: column; align-items: flex-start;">
+                            <h2 class="section-title" style="margin: 0;">REPEAT SPIRALS</h2>
+                            <div class="subtitle" id="spirals-subtitle">Max plays in a single day</div>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; flex: 1; justify-content: center;">
+                            <button class="temporal-filter-btn active" data-period="day" onclick="changeRepeatSpiralsPeriod('day')" style="background: linear-gradient(135deg, rgba(0,179,159,0.3), rgba(0,212,184,0.2)); color: #00D4B8; border: 2px solid rgba(0,179,159,0.6); border-radius: 18px; padding: 8px 20px; font-weight: 700; cursor: pointer; font-size: 12px; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px;">
+                                DAILY
+                            </button>
+                            <button class="temporal-filter-btn" data-period="week" onclick="changeRepeatSpiralsPeriod('week')" style="background: rgba(255,255,255,0.05); color: #B0B6C0; border: 2px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 8px 20px; font-weight: 700; cursor: pointer; font-size: 12px; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px;">
+                                WEEKLY
+                            </button>
+                            <button class="temporal-filter-btn" data-period="month" onclick="changeRepeatSpiralsPeriod('month')" style="background: rgba(255,255,255,0.05); color: #B0B6C0; border: 2px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 8px 20px; font-weight: 700; cursor: pointer; font-size: 12px; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px;">
+                                MONTHLY
+                            </button>
+                        </div>
+                        <button id="create-spirals-playlist" class="playlist-btn" title="Create Playlist" style="flex: 0 0 auto;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="repeat-spirals-list" class="data-list">
+                        <div class="loading-container">
+                            <div class="spinner"></div>
+                            <div class="loading-text">Loading analysis...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REPEAT DAYS -->
+                <div class="section-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div>
+                            <h2 class="section-title" style="margin: 0;">REPEAT DAYS</h2>
+                            <div class="subtitle">Max consecutive days listening</div>
+                        </div>
+                        <button id="create-days-playlist" class="playlist-btn" title="Create Playlist">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="repeat-days-list" class="data-list">
+                        <div class="loading-container">
+                            <div class="spinner"></div>
+                            <div class="loading-text">Loading analysis...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== PÁGINA HISTORY ========== -->
+        <div id="page-history" class="page-content" style="display: none;">
+            <div class="section-card" style="margin-bottom: 25px;">
+                <h2 class="section-title">LISTENING HISTORY</h2>
+                <div id="daily-history-chart" style="height: 400px; background: transparent;"></div>
+            </div>
+        </div>
+
+
+
+    <!-- PLAYER FIXO NO FUNDO - MINIMALISTA COMO SPOTIFY -->
+    <div id="bottom-player" style="
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 80px;
+        background: linear-gradient(135deg, rgba(10,14,23,0.98), rgba(15,25,35,0.98));
+        border-top: 2px solid #00B39F;
+        backdrop-filter: blur(15px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 50000;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+    ">
+        <div style="
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        ">
+            <iframe id="bottom-spotify-iframe" 
+                    src="" 
+                    width="100%" 
+                    height="80" 
+                    frameBorder="0" 
+                    allowfullscreen="" 
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                    loading="lazy"
+                    style="border-radius: 0; background: transparent;">
+            </iframe>
+            <button id="close-player" style="
+                position: absolute;
+                top: 8px;
+                right: 15px;
+                background: transparent;
+                border: none;
+                color: #B0B6C0;
+                font-size: 18px;
+                cursor: pointer;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: all 0.2s ease;
+            " title="Close Player">×</button>
+        </div>
+    </div>
+
+    <!-- CALENDAR MODAL -->
+    <div id="calendar-modal" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 20000;
+    ">
+        <div style="
+            background: #0A0E17;
+            border: 2px solid #00B39F;
+            border-radius: 16px;
+            max-width: 980px;
+            width: 95%;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        ">
+            <div style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 14px 18px;
+                background: rgba(255,255,255,0.04);
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+            ">
+                <div>
+                    <h2 class="section-title" id="calendar-track-title" style="margin: 0;">TRACK CALENDAR</h2>
+                </div>
+                <button id="calendar-close" class="playlist-btn" title="Close" style="width: 36px; height: 36px;">✕</button>
+            </div>
+            <div style="padding: 16px;">
+                <div style="display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 12px;">
+                    <button id="calendar-prev" class="playlist-btn" style="width: 36px; height: 36px;">⟨</button>
+                    <div id="calendar-year" style="font-weight: 800; color: #00B39F;">2025</div>
+                    <button id="calendar-next" class="playlist-btn" style="width: 36px; height: 36px;">⟩</button>
+                </div>
+                <div id="calendar-grid" style="
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 12px;
+                    max-height: 65vh;
+                    overflow: auto;
+                "></div>
+            </div>
+        </div>
+    </div>
+
+        <!-- ========== ARTIST TOP TRACKS MODAL ========== -->
+    <div id="artist-modal" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 20000;
+    ">
+        <div style="
+            background: #0A0E17;
+            border: 2px solid #00B39F;
+            border-radius: 16px;
+            max-width: 980px;
+            width: 95%;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        ">
+            <div style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 14px 18px;
+                background: rgba(255,255,255,0.04);
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+            ">
+                <div>
+                    <h2 class="section-title" id="artist-modal-title" style="margin: 0;">TOP TRACKS - ARTIST</h2>
+                </div>
+                <button id="artist-modal-close" class="playlist-btn" title="Close" style="width: 36px; height: 36px;">✕</button>
+            </div>
+            <div style="padding: 16px; max-height: 75vh; overflow-y: auto;">
+                <div id="artist-top-tracks-list" class="data-list">
+                    <div class="loading-container">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Loading top tracks...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== ALBUM TOP TRACKS MODAL ========== -->
+    <div id="album-modal" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 20000;
+    ">
+        <div style="
+            background: #0A0E17;
+            border: 2px solid #00B39F;
+            border-radius: 16px;
+            max-width: 980px;
+            width: 95%;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        ">
+            <div style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 14px 18px;
+                background: rgba(255,255,255,0.04);
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+            ">
+                <div>
+                    <h2 class="section-title" id="album-modal-title" style="margin: 0;">TOP TRACKS - ALBUM</h2>
+                </div>
+                <button id="album-modal-close" class="playlist-btn" title="Close" style="width: 36px; height: 36px;">✕</button>
+            </div>
+            <div style="padding: 16px; max-height: 75vh; overflow-y: auto;">
+                <div id="album-top-tracks-list" class="data-list">
+                    <div class="loading-container">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Loading top tracks...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- PROFESSIONAL JAVASCRIPT - PRESERVADO ORIGINAL + PLAYER FIXO -->
+    <script>
+        console.log('🎵 Spotify Pedro Dashboard - Fixed Bottom Player');
+
+        // Global state
+        let currentFilters = { year: 'all', month: 'all' };
+        let currentResultsLimit = 10;  // ← NOVO
+        let currentTrack = null;
+        let isLoading = false;
+        let userHasInteracted = false;
+        let currentDataSets = {
+            tracks: [],
+            spirals: [],
+            days: []
+        };
+
+        // Calendar state
+        let calendarState = {
+            year: new Date().getFullYear(),
+            data: {},
+            title: ''
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Initializing dashboard');
+            initializeDashboard();
+            setupEventListeners();
+            loadAvailableYears();
+            loadLocalData();
+            
+            // Enable user interaction detection
+            document.addEventListener('click', enableAutoplay, { once: true });
+            document.addEventListener('keydown', enableAutoplay, { once: true });
+        });
+
+        function enableAutoplay() {
+            userHasInteracted = true;
+            console.log('✅ User interaction detected - autoplay enabled');
+        }
+
+        function initializeDashboard() {
+            addProfessionalStyles();
+            
+            // Definir limite inicial
+            document.getElementById('results-limit').value = currentResultsLimit;
+            
+            // Carregar apenas página Main ao arrancar
+            loadPageData('main');
+        }
+
+
+        function addProfessionalStyles() {
+            const style = document.createElement('style');
+            style.textContent = `
+                /* PROFESSIONAL SCROLLBAR */
+                ::-webkit-scrollbar {
+                    width: 6px;
+                    height: 6px;
+                }
+                ::-webkit-scrollbar-track {
+                    background: rgba(40, 40, 40, 0.2);
+                    border-radius: 3px;
+                }
+                ::-webkit-scrollbar-thumb {
+                    background: rgba(60, 60, 60, 0.5);
+                    border-radius: 3px;
+                    transition: background 0.3s ease;
+                }
+                ::-webkit-scrollbar-thumb:hover {
+                    background: rgba(80, 80, 80, 0.7);
+                }
+                
+                /* LOADING SPINNER */
+                .spinner {
+                    width: 24px;
+                    height: 24px;
+                    border: 3px solid rgba(0, 179, 159, 0.3);
+                    border-top: 3px solid #00B39F;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto;
+                }
+                
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                .loading-container {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 40px 20px;
+                    text-align: center;
+                }
+                
+                .loading-text {
+                    color: #B0B6C0;
+                    font-size: 14px;
+                    margin-top: 15px;
+                    opacity: 0.8;
+                }
+                
+                /* TOAST NOTIFICATIONS */
+                .toast {
+                    background: linear-gradient(135deg, rgba(10,14,23,0.95), rgba(15,25,35,0.95));
+                    border: 2px solid #00B39F;
+                    border-radius: 12px;
+                    padding: 16px 20px;
+                    color: white;
+                    font-family: 'Inter', Arial, sans-serif;
+                    font-weight: 600;
+                    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 179, 159, 0.3);
+                    backdrop-filter: blur(20px);
+                    transform: translateX(100%);
+                    opacity: 0;
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    max-width: 350px;
+                    min-width: 280px;
+                    position: relative;
+                    overflow: hidden;
+                }
+                
+                .toast::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 3px;
+                    background: linear-gradient(90deg, #00B39F, #00D4B8);
+                }
+                
+                .toast.show {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                
+                .toast.success {
+                    border-color: #00D4B8;
+                }
+                
+                .toast.error {
+                    border-color: #ff6b6b;
+                }
+                
+                .toast.success::before {
+                    background: linear-gradient(90deg, #00D4B8, #00E6CC);
+                }
+                
+                .toast.error::before {
+                    background: linear-gradient(90deg, #ff6b6b, #ff8e8e);
+                }
+                
+                .toast-icon {
+                    display: inline-block;
+                    margin-right: 12px;
+                    font-size: 18px;
+                }
+                
+                .toast-content {
+                    display: flex;
+                    align-items: center;
+                }
+                
+                .toast-text {
+                    flex: 1;
+                    line-height: 1.4;
+                }
+                
+                .toast-title {
+                    font-weight: 700;
+                    margin-bottom: 4px;
+                    color: #FFFFFF;
+                }
+                
+                .toast-message {
+                    font-weight: 500;
+                    font-size: 13px;
+                    opacity: 0.9;
+                    color: #B0B6C0;
+                }
+                
+                /* SECTION CARDS */
+                .section-card {
+                    background: rgba(255,255,255,0.03);
+                    border: 2px solid rgba(0,179,159,0.3);
+                    border-radius: 16px;
+                    padding: 24px;
+                    transition: all 0.3s ease;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .section-card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: linear-gradient(135deg, rgba(0,179,159,0.02), rgba(0,212,184,0.01));
+                    pointer-events: none;
+                    z-index: 0;
+                }
+                .section-card > * {
+                    position: relative;
+                    z-index: 1;
+                }
+                .section-card:hover {
+                    border-color: #00B39F;
+                    box-shadow: 0 8px 30px rgba(0,179,159,0.15);
+                }
+                .section-title {
+                    color: #00B39F;
+                    font-size: 18px;
+                    font-weight: 800;
+                    letter-spacing: 1px;
+                    text-align: center;
+                }
+                .subtitle {
+                    color: #B0B6C0;
+                    font-size: 11px;
+                    text-align: center;
+                    margin-top: 4px;
+                    font-style: italic;
+                    opacity: 0.8;
+                }
+                .data-list {
+                    max-height: 600px;
+                    overflow-y: auto;
+                }
+                
+                /* ITEM ROWS */
+                .item-row {
+                    display: flex;
+                    align-items: center;
+                    padding: 12px 0;
+                    border-bottom: 1px solid rgba(255,255,255,0.06);
+                    transition: all 0.3s ease;
+                    position: relative;
+                    gap: 12px;
+                }
+                .item-row::before {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 0%;
+                    height: 100%;
+                    background: linear-gradient(90deg, rgba(0,179,159,0.08), rgba(0,179,159,0.03));
+                    transition: width 0.3s ease;
+                    z-index: 0;
+                }
+                .item-row:hover::before {
+                    width: 100%;
+                }
+                .item-row:hover {
+                    padding-left: 12px;
+                    transform: translateX(2px);
+                }
+                .item-row > * {
+                    position: relative;
+                    z-index: 1;
+                }
+                .rank {
+                    color: #00B39F;
+                    font-weight: 700;
+                    min-width: 28px;
+                    font-size: 13px;
+                    text-align: center;
+                    flex-shrink: 0;
+                }
+                
+                /* IMAGES */
+                .item-image {
+                    width: 40px;
+                    height: 40px;
+                    flex-shrink: 0;
+                    position: relative;
+                    overflow: hidden;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    border: 2px solid rgba(0, 179, 159, 0.2);
+                    transition: all 0.3s ease;
+                }
+                .item-row:hover .item-image {
+                    border-color: rgba(0, 179, 159, 0.6);
+                    box-shadow: 0 6px 20px rgba(0, 179, 159, 0.2);
+                    transform: scale(1.05);
+                }
+                .track-image, .artist-image, .album-image {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    transition: all 0.3s ease;
+                }
+                .item-row:hover .track-image,
+                .item-row:hover .artist-image, 
+                .item-row:hover .album-image {
+                    transform: scale(1.1);
+                }
+                
+                .item-info {
+                    flex: 1;
+                    margin-left: 8px;
+                }
+                .item-name {
+                    color: #FFFFFF;
+                    font-weight: 600;
+                    font-size: 13px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    line-height: 1.3;
+                }
+                .item-name:hover {
+                    color: #00D4B8;
+                    text-shadow: 0 0 8px rgba(0,212,184,0.3);
+                }
+                .item-subtitle {
+                    color: #B0B6C0;
+                    font-size: 11px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    line-height: 1.2;
+                    margin-top: 2px;
+                }
+                .item-subtitle:hover {
+                    color: #00B39F;
+                }
+                .item-value {
+                    color: #00B39F;
+                    font-weight: 700;
+                    font-size: 11px;
+                    min-width: 55px;
+                    text-align: right;
+                    background: linear-gradient(135deg, #00B39F, #00D4B8);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                }
+                .playlist-btn {
+                    background: linear-gradient(135deg, rgba(0,179,159,0.2), rgba(0,212,184,0.1));
+                    color: #00B39F;
+                    border: 2px solid rgba(0,179,159,0.5);
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 14px;
+                    position: relative;
+                }
+                .playlist-btn:hover {
+                    background: linear-gradient(135deg, #00B39F, #00D4B8);
+                    color: white;
+                    transform: scale(1.1);
+                    border-color: #00D4B8;
+                    box-shadow: 0 4px 15px rgba(0,179,159,0.4);
+                }
+                .playlist-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                    transform: none !important;
+                }
+                
+                .clickable-track, .clickable-artist, .clickable-album {
+                    cursor: pointer !important;
+                    transition: all 0.3s ease !important;
+                }
+
+                /* BOTÃO + PARA CALENDAR */
+                .calendar-btn {
+                    background: transparent;
+                    border: 1px solid rgba(0, 179, 159, 0.5);
+                    color: #00D4B8;
+                    border-radius: 6px;
+                    width: 24px;
+                    height: 24px;
+                    font-weight: 900;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 14px;
+                }
+                .calendar-btn:hover {
+                    background: rgba(0, 179, 159, 0.2);
+                    border-color: #00D4B8;
+                    transform: scale(1.1);
+                }
+
+                /* BOTTOM PLAYER HOVER EFFECTS */
+                #close-player:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    color: #ff6b6b;
+                }
+
+                /* BOTTOM PLAYER ANIMATION */
+                #bottom-player {
+                    animation: slideUp 0.3s ease-out;
+                }
+
+                @keyframes slideUp {
+                    from {
+                        transform: translateY(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        function setupEventListeners() {
+            
+            // Playlist buttons
+            document.getElementById('create-tracks-playlist').addEventListener('click', () => createPlaylist('tracks'));
+            document.getElementById('create-spirals-playlist').addEventListener('click', () => createPlaylist('spirals'));
+            document.getElementById('create-days-playlist').addEventListener('click', () => createPlaylist('days'));
+            
+            // Calendar
+            document.getElementById('calendar-close').addEventListener('click', closeCalendar);
+            document.getElementById('calendar-prev').addEventListener('click', () => shiftCalendar(-1));
+            document.getElementById('calendar-next').addEventListener('click', () => shiftCalendar(1));
+
+             // Artist and Album modals
+            document.getElementById('artist-modal-close').addEventListener('click', closeArtistModal);
+            document.getElementById('album-modal-close').addEventListener('click', closeAlbumModal);
+
+            
+            // Bottom player close
+            document.getElementById('close-player').addEventListener('click', closeBottomPlayer);
+            
+            // Track clicks
+            document.addEventListener('click', function(event) {
+            const target = event.target;
+            
+            // IGNORAR botões de sistema
+            if (target.id === 'apply-filters' || target.closest('#apply-filters') || 
+                target.closest('.apply-filters-btn')) {
+                return;
+            }
+                
+                if (target.classList.contains('clickable-track')) {
+                    const uri = target.getAttribute('data-uri');
+                    const name = target.getAttribute('data-name');
+                    const artist = target.getAttribute('data-artist');
+                    const preview = target.getAttribute('data-preview');
+                    const spotifyUrl = target.getAttribute('data-spotify-url');
+                    const trackId = target.getAttribute('data-track-id');
+                    
+                    loadTrackInBottomPlayer(uri, name, artist, spotifyUrl, trackId);
+                }
+                
+                if (target.classList.contains('clickable-artist')) {
+                    const name = target.getAttribute('data-name');
+                    // CHANGED: Open artist modal instead of Spotify search
+                    openArtistModal(name);
+                }
+                
+                if (target.classList.contains('clickable-album')) {
+                    const name = target.getAttribute('data-name');
+                    // CHANGED: Open album modal instead of Spotify search
+                    openAlbumModal(name);
+                }
+
+            });
+        }
+
+        // ========== BOTTOM PLAYER FUNCTIONS ==========
+
+
+        async function toggleTracksIntentional() {
+            tracksIntentionalActive = document.getElementById('tracks-intentional-filter').checked;
+            showToast('Loading tracks...', 'info');
+            const tracksList = document.getElementById('top-tracks-list');
+            tracksList.innerHTML = '<div class="loading-container"><div class="spinner"></div><div class="loading-text">Loading tracks...</div></div>';
+            try {
+                const endpoint = tracksIntentionalActive ? '/api/local_tracks_really_played' : '/api/local_tracks';
+                const params = new URLSearchParams(currentFilters);
+                params.append('limit', currentResultsLimit);  // ← ADICIONAR ISTO
+                const response = await fetch(endpoint + '?' + params);
+                const data = await response.json();
+                if (data.success) {
+                    currentDataSets.tracks = data.data;
+                    renderTracksWithImages(data.data, 'top-tracks-list');  // ← REMOVER .slice(0, 50)
+                    showToast(tracksIntentionalActive ? 'Showing INTENTIONAL tracks' : 'Showing all tracks', 'success');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                tracksList.innerHTML = '<div class="loading-text" style="color: #FF4336;">Error loading tracks</div>';
+            }
+        }
+
+        async function loadTrackInBottomPlayer(uri, name, artist, spotifyUrl, trackId) {
+            console.log(`🎵 Loading track in bottom player: ${name} - ${artist}`);
+            
+            currentTrack = { uri, name, artist, spotifyUrl, trackId };
+            
+            let finalTrackId = trackId;
+            
+            // Search for ID if not available
+            if (!finalTrackId || finalTrackId === 'null' || finalTrackId === '' || finalTrackId === 'None') {
+                console.log(`🔍 Searching for track ID: ${name} - ${artist}`);
+                
+                try {
+                    const response = await fetch(`/api/search_track?track_name=${encodeURIComponent(name)}&artist_name=${encodeURIComponent(artist)}`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.track && data.track.id) {
+                        finalTrackId = data.track.id;
+                        console.log(`✅ Found track ID: ${finalTrackId}`);
+                        currentTrack.trackId = finalTrackId;
+                    }
+                } catch (error) {
+                    console.log(`❌ Track search error: ${error}`);
+                }
+            }
+            
+            // Show bottom player
+            showBottomPlayer();
+            
+            // Load track with autoplay
+            const embedUrl = getCompactEmbedUrl(finalTrackId, name, artist);
+            loadBottomPlayerIFrame(embedUrl, name, artist);
+        }
+
+        function getCompactEmbedUrl(trackId, name, artist) {
+            if (trackId && trackId !== 'null' && trackId !== '' && trackId !== 'None') {
+                console.log(`🎵 Using compact embed with track ID: ${trackId}`);
+                return `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0&autoplay=1&height=80`;
+            } else {
+                console.log(`🎵 Using compact search embed: ${name} ${artist}`);
+                const cleanQuery = `${name} ${artist}`.replace(/[^\w\s]/g, ' ').trim();
+                const encodedQuery = encodeURIComponent(cleanQuery);
+                return `https://open.spotify.com/embed/search/${encodedQuery}?utm_source=generator&theme=0&autoplay=1&height=80`;
+            }
+        }
+
+        function loadBottomPlayerIFrame(embedUrl, name, artist) {
+            const iframe = document.getElementById('bottom-spotify-iframe');
+            const player = document.getElementById('bottom-player');
+            
+            // Limpar iframe
+            iframe.src = '';
+            
+            // NOVO: Criar overlay invisível para capturar clique
+            
+            
+            iframe.onload = function() {
+                console.log('✅ Bottom player iframe loaded successfully');
+                showToast('Player Ready', `${name} - ${artist}`, 'info', 3000);
+                
+                // Scroll suave até ao player
+                player.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+            };
+            
+            // Carregar o iframe com autoplay
+            iframe.src = embedUrl;
+        }
+
+
+
+        function triggerBottomPlayerAutoplay() {
+            const iframe = document.getElementById('bottom-spotify-iframe');
+            
+            if (iframe && iframe.src) {
+                // Criar um botão invisível que clica no iframe
+                const clickButton = document.createElement('button');
+                clickButton.style.position = 'absolute';
+                clickButton.style.opacity = '0';
+                clickButton.style.pointerEvents = 'none';
+                document.body.appendChild(clickButton);
+                
+                // Simular click do utilizador no iframe
+                setTimeout(() => {
+                    iframe.scrollIntoView();
+                    iframe.focus();
+                    
+                    // Simular evento de mouse real
+                    const clickEvent = new MouseEvent('click', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: iframe.offsetLeft + 50,
+                        clientY: iframe.offsetTop + 40
+                    });
+                    
+                    iframe.dispatchEvent(clickEvent);
+                    
+                    // Remover botão
+                    document.body.removeChild(clickButton);
+                    
+                    console.log('✅ PLAY button virtually clicked');
+                }, 1000);
+            }
+        }
+
+
+
+        function showBottomPlayer() {
+            const player = document.getElementById('bottom-player');
+            player.style.display = 'flex';
+            
+            // Ajustar container para acomodar o player
+            const container = document.querySelector('.container-fluid');
+            if (container) {
+                container.style.height = 'calc(100vh - 80px)';
+            }
+        }
+
+
+       function closeBottomPlayer() {
+            const player = document.getElementById('bottom-player');
+            const iframe = document.getElementById('bottom-spotify-iframe');
+            
+            // Hide player
+            player.style.display = 'none';
+            
+            // Clear iframe
+            iframe.src = '';
+            
+            // Restaurar altura original do container
+            const container = document.querySelector('.container-fluid');
+            if (container) {
+                container.style.height = '100vh';
+            }
+            
+            showToast('Player Closed', 'Music stopped', 'info', 2000);
+        }
+
+
+        // ========== CALENDAR FUNCTIONS ==========
+
+        function openCalendarFromButton(event) {
+            const trackKey = event.currentTarget.getAttribute('data-track-key');
+            openCalendar(trackKey);
+        }
+
+        async function openCalendar(trackKey) {
+            try {
+                const response = await fetch('/api/track_calendar?track_key=' + encodeURIComponent(trackKey));
+                const data = await response.json();
+                
+                if (data.success) {
+                    const { calendar_data, track_info } = data;
+                    showCalendar(track_info, calendar_data);
+                } else {
+                    showToast('Error', 'Failed to load calendar data', 'error', 3000);
+                }
+            } catch (error) {
+                console.log('Calendar error:', error);
+                showToast('Error', 'Failed to load calendar', 'error', 3000);
+            }
+        }
+
+        function showCalendar(trackInfo, calendarData) {
+            calendarState.data = calendarData;
+            calendarState.title = `${trackInfo.name} — ${trackInfo.artist}`;
+            
+            document.getElementById('calendar-track-title').textContent = calendarState.title;
+            document.getElementById('calendar-year').textContent = calendarState.year;
+            
+            renderCalendarGrid();
+            document.getElementById('calendar-modal').style.display = 'flex';
+        }
+
+        function closeCalendar() {
+            document.getElementById('calendar-modal').style.display = 'none';
+        }
+
+        function shiftCalendar(delta) {
+            calendarState.year += delta;
+            document.getElementById('calendar-year').textContent = calendarState.year;
+            renderCalendarGrid();
+        }
+
+        function renderCalendarGrid() {
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            
+            for (let month = 0; month < 12; month++) {
+                const monthDate = new Date(calendarState.year, month, 1);
+                const monthName = monthDate.toLocaleString('en', { month: 'long' });
+                const daysInMonth = new Date(calendarState.year, month + 1, 0).getDate();
+                const firstDayOfWeek = (new Date(calendarState.year, month, 1).getDay() + 6) % 7; // Monday first
+                
+                let monthHtml = `
+                    <div style="
+                        border: 1px solid rgba(255,255,255,0.06);
+                        border-radius: 10px;
+                        padding: 10px;
+                        background: rgba(255,255,255,0.02);
+                    ">
+                        <div style="
+                            text-align: center;
+                            color: #00B39F;
+                            font-weight: 800;
+                            margin-bottom: 6px;
+                        ">${monthName}</div>
+                        <div style="
+                            display: grid;
+                            grid-template-columns: repeat(7, 22px);
+                            justify-content: center;
+                        ">
+                `;
+                
+                // Empty cells for days before month starts
+                for (let i = 0; i < firstDayOfWeek; i++) {
+                    monthHtml += '<div style="opacity: 0.25;"></div>';
+                }
+                
+                // Days of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateString = `${calendarState.year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const plays = calendarState.data[dateString] || 0;
+                    const hasPlays = plays > 0;
+                    
+                    monthHtml += `
+                        <div title="${hasPlays ? plays + ' plays' : ''}" style="
+                            width: 22px;
+                            height: 22px;
+                            border-radius: 4px;
+                            margin: 1px;
+                            background: ${hasPlays ? 'linear-gradient(135deg, #00B39F, #00D4B8)' : 'rgba(255,255,255,0.08)'};
+                            border: 1px solid ${hasPlays ? 'rgba(0,212,184,0.6)' : 'rgba(255,255,255,0.06)'};
+                        "></div>
+                    `;
+                }
+                
+                monthHtml += '</div></div>';
+                grid.insertAdjacentHTML('beforeend', monthHtml);
+            }
+        }
+
+        // ========== REST OF FUNCTIONS (UNCHANGED) ==========
+
+        function showToast(title, message, type = 'success', duration = 5000) {
+            const container = document.getElementById('toast-container');
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                info: 'ℹ️',
+                warning: '⚠️'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <span class="toast-icon">${icons[type] || icons.info}</span>
+                    <div class="toast-text">
+                        <div class="toast-title">${title}</div>
+                        <div class="toast-message">${message}</div>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 400);
+            }, duration);
+            
+            return toast;
+        }
+
+        function showLoadingState(containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Loading data...</div>
+                </div>
+            `;
+        }
+        
+        function showApplyFiltersLoading() {
+            document.getElementById('apply-text').style.display = 'none';
+            document.getElementById('apply-loading').style.display = 'inline-block';
+            document.getElementById('apply-filters').disabled = true;
+        }
+        
+        function hideApplyFiltersLoading() {
+            document.getElementById('apply-text').style.display = 'inline-block';
+            document.getElementById('apply-loading').style.display = 'none';
+            document.getElementById('apply-filters').disabled = false;
+        }
+
+        async function loadAvailableYears() {
+            try {
+                const response = await fetch('/api/available_years');
+                const data = await response.json();
+                
+                if (data.success && data.years.length > 0) {
+                    const yearSelect = document.getElementById('year-filter');
+                    data.years.forEach(year => {
+                        const option = document.createElement('option');
+                        option.value = year;
+                        option.textContent = year;
+                        yearSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.log('Error loading years:', error);
+            }
+        }
+
+        function updateResultsLimit() {
+            const newLimit = parseInt(document.getElementById('results-limit').value);
+            if (newLimit !== currentResultsLimit) {
+                currentResultsLimit = newLimit;
+                console.log('Results limit updated to:', currentResultsLimit);
+                
+                // NÃO recarregar automaticamente - apenas mostrar aviso
+                // Sem popup - só log silencioso
+            console.log(`Results limit set to ${currentResultsLimit} items`);
+
+            }
+        }
+
+
+
+        async function loadLocalData() {
+            // Mostrar loading em todos os containers ativos
+            const activePage = document.querySelector('.nav-tab.active').getAttribute('data-page');
+            
+            if (activePage === 'main') {
+                showLoadingState('top-tracks-list');
+                showLoadingState('top-artists-list');
+                showLoadingState('top-albums-list');
+                await Promise.all([
+                    loadLocalTracks(),
+                    loadLocalArtists(),
+                    loadLocalAlbums()
+                ]);
+            } else if (activePage === 'repeats') {
+                showLoadingState('repeat-spirals-list');
+                showLoadingState('repeat-days-list');
+                await Promise.all([
+                    loadRepeatSpirals(),
+                    loadRepeatDays()
+                ]);
+            } else if (activePage === 'history') {
+                await loadDailyHistory();
+            }
+        }
+
+
+
+        async function loadLocalTracks() {
+            showLoadingState('top-tracks-list');
+            try {
+                const params = new URLSearchParams(currentFilters);
+                params.append('limit', currentResultsLimit);
+                const response = await fetch('/api/local_tracks?' + params);
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentDataSets.tracks = data.data;
+                    renderTracksWithImages(data.data, 'top-tracks-list');
+                }
+            } catch (error) {
+                console.log('Error loading tracks:', error);
+                document.getElementById('top-tracks-list').innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 40px;">Error loading tracks</div>';
+            }
+        }
+
+
+
+        async function loadLocalArtists() {
+            showLoadingState('top-artists-list');
+            try {
+                const params = new URLSearchParams(currentFilters);
+                params.append('limit', currentResultsLimit);
+                const response = await fetch('/api/local_artists?' + params);
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderArtistsWithImages(data.data.slice(0, currentResultsLimit), 'top-artists-list');
+                }
+            } catch (error) {
+                console.log('Error loading artists:', error);
+                document.getElementById('top-artists-list').innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 40px;">Error loading artists</div>';
+            }
+        }
+
+        async function loadLocalAlbums() {
+            showLoadingState('top-albums-list');
+            try {
+                const params = new URLSearchParams(currentFilters);
+                params.append('limit', currentResultsLimit);
+                const response = await fetch('/api/local_albums?' + params);
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderAlbumsWithImages(data.data.slice(0, currentResultsLimit), 'top-albums-list');
+                }
+            } catch (error) {
+                console.log('Error loading albums:', error);
+                document.getElementById('top-albums-list').innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 40px;">Error loading albums</div>';
+            }
+        }
+
+        async function loadDailyHistory() {
+            showLoadingState('daily-history-chart'); // ← ISTO
+            try {
+                const params = new URLSearchParams(currentFilters);
+                const response = await fetch('/api/daily_history?' + params);
+                const data = await response.json();
+                
+                if (data.success && data.data.length > 0) {
+                    const processedData = data.data.length > 365 ? groupDataByWeek(data.data) : data.data;
+                    renderDailyHistoryChart(processedData);
+                }
+            } catch (error) {
+                console.log('Error loading history:', error);
+            }
+        }
+
+
+
+
+        async function loadRepeatDays() {
+            try {
+                const params = new URLSearchParams(currentFilters);
+                params.append('limit', currentResultsLimit);
+                const response = await fetch('/api/repeat_days?' + params);
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentDataSets.days = data.data;
+                    renderRepeatDaysWithImages(data.data.slice(0, currentResultsLimit));
+                }
+            } catch (error) {
+                console.log('Error loading repeat days:', error);
+                document.getElementById('repeat-days-list').innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 40px;">Error loading analysis</div>';
+            }
+        }
+
+        function groupDataByWeek(data) {
+            const grouped = {};
+            
+            data.forEach(item => {
+                const date = new Date(item.date);
+                const weekStart = new Date(date.setDate(date.getDate() - date.getDay()));
+                const weekKey = weekStart.toISOString().split('T')[0];
+                
+                if (!grouped[weekKey]) {
+                    grouped[weekKey] = { date: weekKey, plays: 0 };
+                }
+                grouped[weekKey].plays += item.plays;
+            });
+            
+            return Object.values(grouped).sort((a, b) => new Date(a.date) - new Date(b.date));
+        }
+
+        // ========== RENDER FUNCTIONS ==========
+
+        function renderTracksWithImages(tracks, containerId) {
+            const container = document.getElementById(containerId);
+            
+            let html = '';
+            tracks.forEach((track, index) => {
+                const trackName = track.enhanced_name || track.name || track.track_key.split(' - ')[0] || 'Unknown';
+                const artistName = track.enhanced_artist || track.artist || track.track_key.split(' - ')[1] || 'Unknown';
+                const imageUrl = track.image_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+                const trackId = track.id || track.track_id || '';
+                
+                html += `
+                    <div class="item-row">
+                        <span class="rank">${index + 1}</span>
+                        <div class="item-image">
+                            <img src="${imageUrl}" 
+                                 alt="${trackName}" 
+                                 class="track-image"
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ite0xMiAyM0gyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name clickable-track" 
+                                 data-type="track" 
+                                 data-name="${trackName}"
+                                 data-artist="${artistName}"
+                                 data-spotify-url="${track.spotify_url || ''}"
+                                 data-preview="${track.preview_url || ''}"
+                                 data-track-key="${track.track_key || ''}"
+                                 data-uri="${track.uri || ''}"
+                                 data-track-id="${trackId}">
+                                ${trackName}
+                            </div>
+                            <div class="item-subtitle clickable-artist"
+                                 data-type="artist"
+                                 data-name="${artistName}">
+                                ${artistName}
+                            </div>
+                        </div>
+                        <span class="item-value">${track.plays || track.popularity || 0}${track.popularity ? '/100' : ' plays'}</span>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function renderArtistsWithImages(artists, containerId) {
+            const container = document.getElementById(containerId);
+            
+            let html = '';
+            artists.forEach((artist, index) => {
+                const artistName = artist.enhanced_name || artist.name || artist.artist_key || 'Unknown';
+                const imageUrl = artist.image_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iMjAiIGZpbGw9IiMwMEIzOUYiLz4KPHBhdGggZD0iTTIwIDEyVjI4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTIgMjBIMjAiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPg==';
+                
+                html += `
+                    <div class="item-row">
+                        <span class="rank">${index + 1}</span>
+                        <div class="item-image">
+                            <img src="${imageUrl}" 
+                                 alt="${artistName}" 
+                                 class="artist-image"
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iMjAiIGZpbGw9IiMwMEIzOUYiLz4KUGFkSCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name clickable-artist" 
+                                 data-type="artist" 
+                                 data-name="${artistName}"
+                                 data-spotify-url="${artist.spotify_url || ''}">
+                                ${artistName}
+                            </div>
+                        </div>
+                        <span class="item-value">${artist.plays || 0} plays</span>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function renderAlbumsWithImages(albums, containerId) {
+            const container = document.getElementById(containerId);
+            
+            let html = '';
+            albums.forEach((album, index) => {
+                const albumName = album.enhanced_name || album.name || album.album_key || 'Unknown';
+                const imageUrl = album.image_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzAwQjM5RiIvPgo8Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSI4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
+                
+                html += `
+                    <div class="item-row">
+                        <span class="rank">${index + 1}</span>
+                        <div class="item-image">
+                            <img src="${imageUrl}" 
+                                 alt="${albumName}" 
+                                 class="album-image"
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzAwQjM5RiIvPgo8Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSI4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+'">
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name clickable-album" 
+                                 data-type="album" 
+                                 data-name="${albumName}"
+                                 data-spotify-url="${album.spotify_url || ''}">
+                                ${albumName}
+                            </div>
+                        </div>
+                        <span class="item-value">${album.plays || 0} plays</span>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function renderRepeatSpiralsWithImages(data) {
+            const container = document.getElementById('repeat-spirals-list');
+            
+            let html = '';
+            data.forEach((item, index) => {
+                const trackName = item.enhanced_name || item.name || item.track_key.split(' - ')[0] || 'Unknown';
+                const artistName = item.enhanced_artist || item.artist || item.track_key.split(' - ')[1] || 'Unknown';
+                const imageUrl = item.image_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+                const trackId = item.id || item.track_id || '';
+                
+                html += `
+                    <div class="item-row">
+                        <span class="rank">${index + 1}</span>
+                        <div class="item-image">
+                            <img src="${imageUrl}" 
+                                 alt="${trackName}" 
+                                 class="track-image"
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name clickable-track" 
+                                 data-name="${trackName}"
+                                 data-artist="${artistName}"
+                                 data-track-key="${item.track_key || ''}"
+                                 data-track-id="${trackId}">
+                                ${trackName}
+                            </div>
+                            <div class="item-subtitle">${artistName}</div>
+                        </div>
+                        <span class="item-value">${item.max_single_day_plays || item.consecutive_days || item.unique_days} in 1 ${getPeriodLabel()}</span>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function getPeriodLabel() {
+            const labels = {
+                'day': 'day',
+                'week': 'week',
+                'month': 'month'
+            };
+            return labels[currentSpiralsPeriod] || 'day';
+        }
+
+
+        function renderRepeatDaysWithImages(data) {
+            const container = document.getElementById('repeat-days-list');
+            
+            let html = '';
+            data.forEach((item, index) => {
+                const trackName = item.enhanced_name || item.name || item.track_key.split(' - ')[0] || 'Unknown';
+                const artistName = item.enhanced_artist || item.artist || item.track_key.split(' - ')[1] || 'Unknown';
+                const imageUrl = item.image_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+                const trackId = item.id || item.track_id || '';
+                
+                html += `
+                    <div class="item-row">
+                        <span class="rank">${index + 1}</span>
+                        <div class="item-image">
+                            <img src="${imageUrl}" 
+                                 alt="${trackName}" 
+                                 class="track-image"
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name clickable-track" 
+                                 data-name="${trackName}"
+                                 data-artist="${artistName}"
+                                 data-track-key="${item.track_key || ''}"
+                                 data-track-id="${trackId}">
+                                ${trackName}
+                            </div>
+                            <div class="item-subtitle">${artistName}</div>
+                        </div>
+                        <button class="calendar-btn" 
+                                title="Open calendar" 
+                                data-track-key="${item.track_key || ''}" 
+                                onclick="openCalendarFromButton(event)">+</button>
+                        <span class="item-value">${item.consecutive_days || item.unique_days} days</span>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function renderDailyHistoryChart(data) {
+            const dates = data.map(d => d.date);
+            const plays = data.map(d => d.plays);
+
+            const trace = {
+                x: dates,
+                y: plays,
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: {
+                    color: '#00B39F',
+                    width: 3,
+                    shape: 'spline'
+                },
+                marker: {
+                    color: '#00B39F',
+                    size: 4,
+                    line: { color: 'white', width: 1 }
+                },
+                fill: 'tonexty',
+                fillcolor: 'rgba(0, 179, 159, 0.1)',
+                name: 'Plays',
+                hovertemplate: '<b>%{y}</b> plays<br>%{x}<extra></extra>'
+            };
+
+            const layout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#FFFFFF', family: 'Inter, Arial' },
+                xaxis: {
+                    showgrid: false,
+                    zeroline: false,
+                    showticklabels: false
+                },
+                yaxis: {
+                    showgrid: true,
+                    gridcolor: 'rgba(255,255,255,0.06)',
+                    zeroline: false,
+                    title: ''  // REMOVIDO TÍTULO COMO PEDISTE
+                },
+                margin: { t: 20, r: 20, b: 30, l: 70 },
+                hovermode: 'closest'
+            };
+
+            const config = {
+                displayModeBar: false,
+                responsive: true
+            };
+
+            Plotly.newPlot('daily-history-chart', [trace], layout, config);
+        }
+
+        async function applyFilters() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            showApplyFiltersLoading();
+            
+            currentFilters.year = document.getElementById('year-filter').value;
+            currentFilters.month = document.getElementById('month-filter').value;
+            
+            console.log('Applying filters:', currentFilters, 'Results limit:', currentResultsLimit);  // ← ATUALIZADO
+            
+            try {
+                await loadLocalData();
+                showToast('Filters Applied', 'Analytics updated successfully', 'success', 3000);
+            } catch (error) {
+                showToast('Error', 'Failed to apply filters', 'error', 3000);
+            } finally {
+                isLoading = false;
+                hideApplyFiltersLoading();
+            }
+        }
+
+
+        // ========== PLAYLIST CREATION ==========
+
+        function getPlaylistTitle(type) {
+            const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 
+                            'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            let title = '';
+            
+            switch(type) {
+                case 'tracks':
+                    title = 'TOP TRACKS';
+                    break;
+                case 'spirals':
+                    title = 'REPEAT SPIRALS';
+                    break;
+                case 'days':
+                    title = 'REPEAT DAYS';
+                    break;
+                default:
+                    title = 'Custom Playlist';
+            }
+            
+            // Add global year filter
+            if (currentFilters.year !== 'all') {
+                title += ' ' + currentFilters.year;
+            }
+            
+            // Add global month filter
+            if (currentFilters.month !== 'all') {
+                const monthName = monthNames[parseInt(currentFilters.month)];
+                title += ' ' + monthName;
+            }
+            
+            // Add spirals-specific period filter
+            if (type === 'spirals') {
+                const periodLabels = {
+                    'day': 'DAILY',
+                    'week': 'WEEKLY',
+                    'month': 'MONTHLY'
+                };
+                title += ' ' + (periodLabels[currentSpiralsPeriod] || 'DAILY');
+            }
+            
+            return title;
+        }
+
+
+        async function createPlaylist(type) {
+            const button = document.getElementById(`create-${type}-playlist`);
+            
+            try {
+                button.disabled = true;
+                button.innerHTML = '<div class="spinner" style="width: 16px; height: 16px;"></div>';
+                
+                console.log(`🎵 Creating playlist for ${type}`);
+                
+                const title = getPlaylistTitle(type);
+                const data = currentDataSets[type] || [];
+                
+                if (data.length === 0) {
+                    showToast('No Data', 'No data available to create playlist', 'error', 3000);
+                    return;
+                }
+                
+                showToast('Creating Playlist', `Building "${title}" with ${Math.min(data.length, 100)} tracks...`, 'info', 2000);
+                
+                let trackKeys = [];
+                
+                if (type === 'tracks') {
+                    trackKeys = data.map(item => item.track_key || `${item.name || 'Unknown'} - ${item.artist || 'Unknown'}`);
+                } else if (type === 'spirals' || type === 'days') {
+                    trackKeys = data.map(item => item.track_key || `${item.name || 'Unknown'} - ${item.artist || 'Unknown'}`);
+                }
+
+                
+                const response = await fetch('/api/create_custom_playlist', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        type: type,
+                        track_keys: trackKeys,
+                        filters: currentFilters
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(
+                        'Playlist Created', 
+                        `"${title}" with ${result.tracks_added} tracks is ready`, 
+                        'success', 
+                        8000
+                    );
+                    
+                    setTimeout(() => {
+                        window.open(result.url, '_blank');
+                    }, 1500);
+                    
+                } else {
+                    showToast('Creating Playlist', `Building "${title}" with ${Math.min(data.length, currentResultsLimit)} tracks...`, 'info', 2000);
+                }
+                
+            } catch (error) {
+                console.error('Error creating playlist:', error);
+                showToast('Network Error', 'Failed to create playlist. Please try again.', 'error', 5000);
+            } finally {
+                button.disabled = false;
+                button.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                    </svg>
+                `;
+            }
+        }
+
+        function openSpotifySearch(query, type = 'track') {
+            const searchUrl = `https://open.spotify.com/search/${encodeURIComponent(query)}`;
+            window.open(searchUrl, '_blank');
+            console.log(`🔍 Opening Spotify search: ${query} (${type})`);
+        }
+
+        // ========== PAGE NAVIGATION ==========
+        let currentPage = 'main';
+
+        function switchPage(page) {
+            console.log('Switching to page:', page);
+            
+            // Hide all page content
+            document.querySelectorAll('.page-content').forEach(p => {
+                p.style.display = 'none';
+            });
+            
+            // Show selected page
+            document.getElementById(`page-${page}`).style.display = 'block';
+            
+            // Update navigation
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.nav-tab[data-page="${page}"]`).classList.add('active');
+            
+            // SÓ carregar dados se a página estiver vazia
+            if (isPageEmpty(page)) {
+                console.log(`Page ${page} is empty, loading data...`);
+                loadPageData(page);
+            } else {
+                console.log(`Page ${page} already has data, skipping load.`);
+            }
+        }
+
+        function isPageEmpty(page) {
+            const containers = {
+                'main': ['top-tracks-list', 'top-artists-list', 'top-albums-list'],
+                'repeats': ['repeat-spirals-list', 'repeat-days-list'],
+                'history': ['daily-history-chart']
+            };
+            
+            if (!containers[page]) return true;
+            
+            return containers[page].some(containerId => {
+                const element = document.getElementById(containerId);
+                return !element || element.innerHTML.trim() === '' || 
+                    element.innerHTML.includes('Loading') || 
+                    element.innerHTML.includes('loading');
+            });
+        }
+
+
+        function loadPageData(page) {
+            switch(page) {
+                case 'main':
+                    loadLocalTracks();
+                    loadLocalArtists();  
+                    loadLocalAlbums();
+                    break;
+                case 'repeats':
+                    loadRepeatSpirals();
+                    loadRepeatDays();
+                    break;
+                case 'history':
+                    loadDailyHistory();
+                    break;
+            }
+        }
+
+
+        console.log('✅ Spotify Pedro Dashboard loaded successfully with Bottom Player');
+
+        // SPACEBAR - SUPER SIMPLES
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                
+                const player = document.getElementById('bottom-player');
+                const iframe = document.getElementById('bottom-spotify-iframe');
+                
+                if (player.style.display !== 'none' && iframe.src) {
+                    // Simular click no centro do iframe
+                    iframe.click();
+                    iframe.focus();
+                    console.log('⚡ SPACE pressed - iframe clicked');
+                }
+            }
+        });
+
+
+    
+
+    // ========== FILTRO TEMPORAL REPEAT SPIRALS ==========
+    let currentSpiralsPeriod = 'day';
+        let tracksIntentionalActive = false;
+
+    function changeRepeatSpiralsPeriod(period) {
+    currentSpiralsPeriod = period;
+
+    // Update button styles
+    document.querySelectorAll('.temporal-filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-period') === period) {
+            btn.style.background = 'linear-gradient(135deg, rgba(0,179,159,0.3), rgba(0,212,184,0.2))';
+            btn.style.color = '#00D4B8';
+            btn.style.borderColor = 'rgba(0,179,159,0.6)';
+            btn.classList.add('active');
+        } else {
+            btn.style.background = 'rgba(255,255,255,0.05)';
+            btn.style.color = '#B0B6C0';
+            btn.style.borderColor = 'rgba(255,255,255,0.1)';
+            btn.classList.remove('active');
+        }
+    });
+
+    // Update subtitle based on period
+    const subtitle = document.getElementById('spirals-subtitle');
+    if (subtitle) {
+        const subtitles = {
+            'day': 'Max plays in a single day',
+            'week': 'Max plays in a single week',
+            'month': 'Max plays in a single month'
+        };
+        subtitle.textContent = subtitles[period] || 'Max plays in a single day';
+    }
+
+    // Reload spirals
+    loadRepeatSpirals();
+
+    const periodNames = {'day': 'Daily', 'week': 'Weekly', 'month': 'Monthly'};
+    showToast('Filter Updated', `Showing ${periodNames[period]} Repeat Spirals`, 'success', 2000);
+}
+    
+
+    // Modificar loadRepeatSpirals para incluir period
+    const originalLoadRepeatSpirals = loadRepeatSpirals;
+    async function loadRepeatSpirals() {
+        const container = document.getElementById('repeat-spirals-list');
+        
+        // MOSTRAR LOADING ANTES DE FAZER O FETCH
+        container.innerHTML = `
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <div class="loading-text">Loading data...</div>
+            </div>
+        `;
+        
+        try {
+            const params = new URLSearchParams({
+                ...currentFilters,
+                period: currentSpiralsPeriod,
+                limit: currentResultsLimit  // ← ADICIONAR LIMIT AQUI
+            });
+            
+            const response = await fetch(`/api/repeat_spirals?${params}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                currentDataSets.spirals = data.data;
+                renderRepeatSpiralsWithImages(data.data);  // ← REMOVER .slice(0, 50)
+            } else {
+                container.innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 40px;">No data available</div>';
+            }
+        } catch (error) {
+            console.log('Error loading repeat spirals:', error);
+            container.innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 40px;">Error loading analysis</div>';
+        }
+    }
+
+
+
+    // ========== TOP TRACKS REALLY PLAYED ==========
+    async function loadReallyPlayedTracks() {
+        try {
+            const params = new URLSearchParams(currentFilters);
+            const response = await fetch(`/api/local_tracks_really_played?${params}`);
+            const data = await response.json();
+            return data.success ? data.data : [];
+        } catch (error) {
+            console.log('Error loading really played tracks:', error);
+            return [];
+        }
+    }
+
+    async function createReallyPlayedPlaylist() {
+        const button = document.getElementById('create-really-played-playlist');
+
+        try {
+            button.disabled = true;
+            button.innerHTML = '<div class="spinner" style="width: 16px; height: 16px"></div>';
+
+            showToast('Loading Data', 'Fetching intentional plays...', 'info', 2000);
+
+            const tracks = await loadReallyPlayedTracks();
+
+            if (tracks.length === 0) {
+                showToast('No Data', 'No intentional plays available', 'error', 3000);
+                return;
+            }
+
+            const title = getPlaylistTitle('tracks') + ' REALLY PLAYED';
+
+            showToast('Creating Playlist', `Building ${title}...`, 'info', 2000);
+
+            const trackKeys = tracks.slice(0, 50).map(item => 
+                item.track_key || `${item.name || 'Unknown'} - ${item.artist || 'Unknown'}`
+            );
+
+            const response = await fetch('/api/create_custom_playlist', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    title: title,
+                    type: 'really_played',
+                    track_keys: trackKeys,
+                    filters: currentFilters
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('✅ Playlist Created', `${title} ready!`, 'success', 8000);
+                setTimeout(() => window.open(result.url, '_blank'), 1500);
+            } else {
+                showToast('Playlist Error', result.error || 'Failed', 'error', 5000);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Network Error', 'Failed to create playlist', 'error', 5000);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+        }
+    }
+
+    // Add event listener for really played button
+    document.addEventListener('DOMContentLoaded', function() {
+        const reallyPlayedBtn = document.getElementById('create-really-played-playlist');
+        if (reallyPlayedBtn) {
+            reallyPlayedBtn.addEventListener('click', createReallyPlayedPlaylist);
+        }
+    });
+
+     // ========== ARTIST AND ALBUM MODALS ==========
+
+        async function openArtistModal(artistName) {
+            try {
+                const artistModal = document.getElementById('artist-modal');
+                const listContainer = document.getElementById('artist-top-tracks-list');
+                
+                // Show loading state
+                listContainer.innerHTML = '<div class="loading-container"><div class="spinner"></div><div class="loading-text">Loading top tracks...</div></div>';
+                artistModal.style.display = 'flex';
+                
+                // Fetch data from backend
+                const response = await fetch(`/api/artist_top_tracks?artist_name=${encodeURIComponent(artistName)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('artist-modal-title').textContent = `TOP TRACKS — ${artistName}`;
+                    renderTopTracksModal(data.data, 'artist-top-tracks-list');
+                } else {
+                    listContainer.innerHTML = `<div style="text-align: center; color: #FF4336; padding: 40px;">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                console.error('Error opening artist modal:', error);
+                document.getElementById('artist-top-tracks-list').innerHTML = '<div style="text-align: center; color: #FF4336; padding: 40px;">Error loading data</div>';
+            }
+        }
+
+        function closeArtistModal() {
+            document.getElementById('artist-modal').style.display = 'none';
+        }
+
+        async function openAlbumModal(albumName) {
+            try {
+                const albumModal = document.getElementById('album-modal');
+                const listContainer = document.getElementById('album-top-tracks-list');
+                
+                // Show loading state
+                listContainer.innerHTML = '<div class="loading-container"><div class="spinner"></div><div class="loading-text">Loading top tracks...</div></div>';
+                albumModal.style.display = 'flex';
+                
+                // Fetch data from backend
+                const response = await fetch(`/api/album_top_tracks?album_name=${encodeURIComponent(albumName)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('album-modal-title').textContent = `TOP TRACKS — ${albumName}`;
+                    renderTopTracksModal(data.data, 'album-top-tracks-list');
+                } else {
+                    listContainer.innerHTML = `<div style="text-align: center; color: #FF4336; padding: 40px;">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                console.error('Error opening album modal:', error);
+                document.getElementById('album-top-tracks-list').innerHTML = '<div style="text-align: center; color: #FF4336; padding: 40px;">Error loading data</div>';
+            }
+        }
+
+        function closeAlbumModal() {
+            document.getElementById('album-modal').style.display = 'none';
+        }
+
+        function renderTopTracksModal(tracks, containerId) {
+            const container = document.getElementById(containerId);
+            
+            let html = '';
+            tracks.forEach((track, index) => {
+                const trackName = track.name || 'Unknown';
+                const artistName = track.artist || 'Unknown';
+                const imageUrl = track.image_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+                
+                // ✅ CRITICAL: Adiciona data attributes para o player funcionar
+                const uri = track.uri || '';
+                const spotifyUrl = track.spotify_url || '';
+                const trackId = track.id || '';
+                const previewUrl = track.preview_url || '';
+                
+                html += `
+                    <div class="item-row">
+                        <span class="rank">${index + 1}</span>
+                        <div class="item-image">
+                            <img src="${imageUrl}" 
+                                alt="${trackName}" 
+                                class="track-image"
+                                onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name clickable-track" 
+                                data-type="track"
+                                data-uri="${uri}"
+                                data-name="${trackName}"
+                                data-artist="${artistName}"
+                                data-preview="${previewUrl}"
+                                data-spotify-url="${spotifyUrl}"
+                                data-track-id="${trackId}">
+                                ${trackName}
+                            </div>
+                            <div class="item-subtitle">${artistName}</div>
+                        </div>
+                        <span class="item-value">${track.plays} plays</span>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+
+    </script>
+</body>
+</html>

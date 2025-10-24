@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0A0E17;
+            color: #FFFFFF;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .landing-card {
+            background: #1A1A1A;
+            border-radius: 20px;
+            padding: 2.5rem;
+            border: 1px solid rgba(0, 179, 159, 0.2);
+            max-width: 600px;
+            width: 100%;
+            max-height: 95vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+        
+        .landing-card::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .landing-card::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .landing-card::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 184, 0.3);
+            border-radius: 3px;
+        }
+        
+        .landing-card::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 212, 184, 0.5);
+        }
+        
+        .landing-header {
+            margin-bottom: 2rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .landing-header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #00D4B8;
+        }
+        
+        .form-section {
+            margin-bottom: 1.75rem;
+            flex-shrink: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .section-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #B3B3B3;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .username-input-group {
+            display: flex;
+            gap: 0.75rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        #username-input {
+            flex: 1;
+            padding: 0.9rem 1.25rem;
+            background: #0A0E17;
+            border: 2px solid rgba(0, 179, 159, 0.3);
+            border-radius: 10px;
+            color: #FFFFFF;
+            font-size: 0.95rem;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        #username-input:focus {
+            outline: none;
+            border-color: #00D4B8;
+            background: #141820;
+            box-shadow: 0 0 0 3px rgba(0, 212, 184, 0.1);
+        }
+        
+        #username-input::placeholder {
+            color: #6A6A6A;
+        }
+        
+        .save-username-btn {
+            padding: 0.9rem 1.75rem;
+            background: linear-gradient(135deg, #00B39F, #00D4B8);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            box-sizing: border-box;
+        }
+        
+        .save-username-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 212, 184, 0.4);
+        }
+        
+        .save-username-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        #username-status {
+            font-size: 0.85rem;
+            margin-top: 0.6rem;
+            color: #6A6A6A;
+            display: none;
+        }
+        
+        #username-status.success {
+            color: #00D4B8;
+            display: block;
+        }
+        
+        #username-status.error {
+            color: #FF6B6B;
+            display: block;
+        }
+        
+        .upload-zone {
+            border: 2px dashed rgba(0, 179, 159, 0.4);
+            border-radius: 12px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            background: #0A0E17;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
+            display: block;
+        }
+        
+        .upload-zone:hover:not(.disabled) {
+            border-color: #00D4B8;
+            background: rgba(0, 179, 159, 0.05);
+        }
+        
+        .upload-zone.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .upload-zone i {
+            font-size: 2.5rem;
+            color: #00B39F;
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+        
+        .upload-zone p {
+            color: #B3B3B3;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        
+        .upload-zone .hint {
+            font-size: 0.8rem;
+            color: #6A6A6A;
+            margin-top: 0.4rem;
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        #selected-files-list {
+            margin-top: 1rem;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        #selected-files-list::-webkit-scrollbar {
+            width: 5px;
+        }
+        
+        #selected-files-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        #selected-files-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 184, 0.2);
+            border-radius: 2px;
+        }
+        
+        #selected-files-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 212, 184, 0.4);
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0.9rem;
+            background: rgba(0, 179, 159, 0.05);
+            border-left: 3px solid #00B39F;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+        
+        .file-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .file-item:hover {
+            background: rgba(0, 179, 159, 0.1);
+        }
+        
+        .file-item i.fa-file-code {
+            color: #00D4B8;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+        
+        .file-name {
+            flex: 1;
+            word-break: break-all;
+            color: #E0E0E0;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .file-remove-btn {
+            background: transparent;
+            border: none;
+            color: #FF6B6B;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+        
+        .file-remove-btn:hover {
+            background: rgba(255, 107, 107, 0.15);
+            transform: scale(1.1);
+        }
+        
+        .upload-progress {
+            margin-top: 1.25rem;
+            padding: 1.25rem;
+            background: rgba(0, 179, 159, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 179, 159, 0.2);
+            display: none;
+            flex-shrink: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .upload-progress.active {
+            display: block;
+        }
+        
+        .progress-text {
+            font-size: 0.9rem;
+            color: #B3B3B3;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 179, 159, 0.15);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+            box-sizing: border-box;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00B39F, #00D4B8);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 212, 184, 0.5);
+        }
+        
+        .progress-status {
+            font-size: 0.85rem;
+            color: #00D4B8;
+            font-weight: 700;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            flex-shrink: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .btn-primary, .btn-secondary {
+            flex: 1;
+            padding: 0.95rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-sizing: border-box;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #00B39F, #00D4B8);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0, 212, 184, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: #00D4B8;
+            border: 2px solid #00B39F;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(0, 179, 159, 0.1);
+            transform: translateY(-3px);
+        }
+        
+        .btn-secondary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        @media (max-width: 480px) {
+            .landing-card {
+                padding: 1.75rem;
+                border-radius: 16px;
+            }
+            
+            .landing-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .username-input-group {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .save-username-btn {
+                width: 100%;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .btn-primary, .btn-secondary {
+                padding: 0.85rem 1rem;
+                font-size: 0.85rem;
+            }
+            
+            #selected-files-list {
+                max-height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="landing-card">
+        <div class="landing-header">
+            <h1>SPOTIFY DASHBOARD</h1>
+        </div>
+        
+        <div class="form-section">
+            <div class="section-label">Username</div>
+            <div class="username-input-group">
+                <input 
+                    type="text" 
+                    id="username-input" 
+                    placeholder="Enter username"
+                    maxlength="50"
+                >
+                <button class="save-username-btn" onclick="saveUsername()">Save</button>
+            </div>
+            <div id="username-status"></div>
+        </div>
+        
+        <div class="form-section">
+            <div class="section-label">Upload Data Files</div>
+            
+            <label class="upload-zone disabled" id="upload-zone" for="file-input">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click to select JSON files</p>
+                <p class="hint">or drag and drop</p>
+            </label>
+            <input 
+                type="file" 
+                id="file-input" 
+                multiple 
+                accept=".json"
+                onchange="handleFileSelect(event)"
+                disabled
+            >
+            
+            <div id="selected-files-list">
+                <div id="files-container"></div>
+            </div>
+            
+            <div class="upload-progress" id="upload-progress">
+                <div class="progress-text">Uploading files...</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-status" id="upload-status">0%</div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn-primary" id="upload-btn" onclick="uploadFiles()" disabled>
+                <i class="fas fa-arrow-right"></i> Continue
+            </button>
+            <button class="btn-secondary" onclick="clearFiles()">
+                <i class="fas fa-redo"></i> Clear
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+        let usernameSet = false;
+        
+        function saveUsername() {
+            const username = document.getElementById('username-input').value.trim();
+            const statusEl = document.getElementById('username-status');
+            
+            if (!username || username.length < 2) {
+                statusEl.textContent = 'Username must be at least 2 characters';
+                statusEl.className = 'error';
+                return;
+            }
+            
+            fetch('/api/save-username', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    statusEl.textContent = `Welcome, ${username}!`;
+                    statusEl.className = 'success';
+                    usernameSet = true;
+                    
+                    document.getElementById('file-input').disabled = false;
+                    document.getElementById('upload-zone').classList.remove('disabled');
+                    document.getElementById('username-input').disabled = true;
+                    document.querySelector('.save-username-btn').disabled = true;
+                } else {
+                    statusEl.textContent = 'Error saving username';
+                    statusEl.className = 'error';
+                }
+            })
+            .catch(e => {
+                console.error(e);
+                statusEl.textContent = 'Connection error';
+                statusEl.className = 'error';
+            });
+        }
+        
+        function handleFileSelect(event) {
+            if (!usernameSet) {
+                alert('Please set your username first');
+                return;
+            }
+            
+            selectedFiles = Array.from(event.target.files).filter(f => f.name.endsWith('.json'));
+            updateFilesList();
+            document.getElementById('upload-btn').disabled = selectedFiles.length === 0;
+        }
+        
+        function updateFilesList() {
+            const container = document.getElementById('files-container');
+            const listEl = document.getElementById('selected-files-list');
+            
+            if (selectedFiles.length === 0) {
+                listEl.style.display = 'none';
+                return;
+            }
+            
+            listEl.style.display = 'block';
+            container.innerHTML = selectedFiles.map((file, idx) => `
+                <div class="file-item">
+                    <i class="fas fa-file-code"></i>
+                    <span class="file-name">${file.name}</span>
+                    <button class="file-remove-btn" onclick="removeFile(${idx})" type="button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            document.getElementById('file-input').value = '';
+            updateFilesList();
+            document.getElementById('upload-btn').disabled = selectedFiles.length === 0;
+        }
+        
+        function clearFiles() {
+            selectedFiles = [];
+            document.getElementById('file-input').value = '';
+            updateFilesList();
+            document.getElementById('upload-btn').disabled = true;
+        }
+        
+        async function uploadFiles() {
+            const uploadBtn = document.getElementById('upload-btn');
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+            
+            const progressDiv = document.getElementById('upload-progress');
+            progressDiv.classList.add('active');
+            
+            try {
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const formData = new FormData();
+                    formData.append('file', selectedFiles[i]);
+                    
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) throw new Error('Upload failed');
+                    
+                    const percent = Math.round(((i + 1) / selectedFiles.length) * 100);
+                    document.getElementById('progress-fill').style.width = percent + '%';
+                    document.getElementById('upload-status').textContent = percent + '%';
+                }
+                
+                document.getElementById('upload-status').textContent = 'Complete! Redirecting...';
+                
+                const completeRes = await fetch('/upload-complete', { method: 'POST' });
+                const completeData = await completeRes.json();
+                
+                if (completeData.success) {
+                    setTimeout(() => {
+                        window.location.href = '/spotify-auth';
+                    }, 1500);
+                } else {
+                    throw new Error(completeData.error);
+                }
+                
+            } catch (error) {
+                console.error(error);
+                alert('Upload failed: ' + error.message);
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Continue';
+                progressDiv.classList.remove('active');
+            }
+        }
+        
+        document.getElementById('username-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') saveUsername();
+        });
+        
+        const uploadZone = document.querySelector('.upload-zone');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => {
+                if (usernameSet) {
+                    uploadZone.style.borderColor = '#00D4B8';
+                    uploadZone.style.background = 'rgba(0, 179, 159, 0.1)';
+                }
+            });
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => {
+                uploadZone.style.borderColor = 'rgba(0, 179, 159, 0.4)';
+                uploadZone.style.background = '#0A0E17';
+            });
+        });
+        
+        uploadZone.addEventListener('drop', (e) => {
+            if (!usernameSet) {
+                alert('Please set your username first');
+                return;
+            }
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            document.getElementById('file-input').files = files;
+            handleFileSelect({ target: { files: files } });
+        });
+    </script>
+</body>
+</html>

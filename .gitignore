@@ -1,0 +1,30 @@
+venv/
+env/
+ENV/
+
+
+# Credentials
+.env
+*.env
+
+# Cache
+.cache*
+__pycache__/
+*.pyc
+*.pyo
+
+# User data
+user_uploads/
+Spotify Extended Streaming History/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
