@@ -1,35 +1,10 @@
-# ============================================================================
-# SPOTIFY DASHBOARD - REQUIREMENTS
-# ============================================================================
-# Python 3.8+
-# Instalação: pip install -r requirements.txt
-
-# Web Framework
 Flask==3.0.0
 Werkzeug==3.0.1
-
-# Spotify API
 spotipy==2.23.0
-
-# Data Processing
 pandas==2.1.3
 numpy==1.26.2
-
-# String Matching (para data_processing.py)
 fuzzywuzzy==0.18.0
-python-Levenshtein==0.23.0
-
-# Environment Variables
 python-dotenv==1.0.0
-
-# HTTP Requests (usado pelo spotipy)
 requests==2.31.0
-
-# Date/Time
 python-dateutil==2.8.2
-
-# JSON handling (built-in, mas garantir compatibilidade)
-# json - já incluído no Python standard library
-
-# OPTIONAL (para debugging)
-ipython==8.18.1
+gunicorn==21.2.0
