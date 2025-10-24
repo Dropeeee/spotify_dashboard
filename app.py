@@ -32,7 +32,7 @@ from datetime import timedelta
 app.config['SESSION_COOKIE_NAME'] = 'spotify_dashboard_session'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-app.config['SESSION_COOKIE_SECURE'] = False  # ← Adiciona esta linha
+app.config['SESSION_COOKIE_SECURE'] = True  # ← Adiciona esta linha
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 
 @app.before_request
@@ -1472,4 +1472,4 @@ if __name__ == '__main__':
     print("🌐 URL: http://localhost:5000")
     print("🔑 Connect once for full functionality")
     print("=" * 80)
-    app.run(debug=True, port=5000)
+    app.run(debug=False, port=5000)
