@@ -29,11 +29,18 @@ app.secret_key = Config.SECRET_KEY
 # ✅ ADICIONAR configuração de sessão:
 from datetime import timedelta
 
+# Configuração baseada no ambiente
+if os.environ.get('FLASK_ENV') == 'production':
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+else:
+    app.config['SESSION_COOKIE_SECURE'] = False
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
 app.config['SESSION_COOKIE_NAME'] = 'spotify_dashboard_session'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-app.config['SESSION_COOKIE_SECURE'] = True  # ← Adiciona esta linha
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+
 
 @app.before_request
 def setup_session():
@@ -99,6 +106,16 @@ def load_user_data_from_files(user_folder):
     print(f"✅ {len(df):,} records loaded from user files")
     return df
 
+def get_redirect_uri():
+    """Determinar redirect URI dinamicamente baseado no ambiente"""
+    if request and request.url_root:
+        base_url = request.url_root.rstrip('/')
+        redirect_uri = f"{base_url}/callback"
+        print(f"🔗 Using dynamic redirect URI: {redirect_uri}")
+        return redirect_uri
+    
+    return Config.REDIRECT_URI  # fallback para desenvolvimento
+
 
 def get_spotify_client():
     """Spotify client with all required scopes"""
@@ -110,12 +127,13 @@ def get_spotify_client():
         cache_path = '.cache-default'
 
     try:
+        redirect_uri = get_redirect_uri()  # ✅ ADICIONA ESTA LINHA
+
         auth_manager = SpotifyOAuth(
             client_id=Config.SPOTIFY_CLIENT_ID,
             client_secret=Config.SPOTIFY_CLIENT_SECRET,
-            redirect_uri=Config.REDIRECT_URI,
-            scope=scope,
-            cache_path=cache_path  # ✅ USA A VARIÁVEL DEFINIDA NO IF/ELSE
+            redirect_uri=redirect_uri,  # ✅ USA A VARIÁVEL DINÂMICA
+
         )
 
         
@@ -657,10 +675,12 @@ def spotify_auth():
     
     cache_path = os.path.join(get_user_folder(), '.spotify_cache')
     
+    redirect_uri = get_redirect_uri()  # ✅ ADICIONA
+    
     auth_manager = SpotifyOAuth(
         client_id=Config.SPOTIFY_CLIENT_ID,
         client_secret=Config.SPOTIFY_CLIENT_SECRET,
-        redirect_uri=Config.REDIRECT_URI,
+        redirect_uri=redirect_uri,  # ✅ USA DINÂMICO
         scope='user-top-read playlist-modify-public playlist-modify-private streaming user-read-private user-modify-playback-state user-read-playback-state',
         cache_path=cache_path,
         show_dialog=True
@@ -706,10 +726,12 @@ def callback():
         print("📁 Using default cache")
     
     # OAuth
+    redirect_uri = get_redirect_uri()  # ✅ ADICIONA
+    
     auth_manager = SpotifyOAuth(
         client_id=Config.SPOTIFY_CLIENT_ID,
         client_secret=Config.SPOTIFY_CLIENT_SECRET,
-        redirect_uri=Config.REDIRECT_URI,
+        redirect_uri=redirect_uri,  # ✅ USA DINÂMICO
         scope='user-top-read playlist-modify-public playlist-modify-private streaming user-read-private user-modify-playback-state user-read-playback-state',
         cache_path=cache_path
     )
@@ -941,10 +963,12 @@ def home():
                 return render_template('dashboard.html', username=session.get('username', 'User'))
             else:
                 # HTML inline para dev
+                redirect_uri = get_redirect_uri()  # Adicionar esta linha
+
                 auth_manager = SpotifyOAuth(
                     client_id=Config.SPOTIFY_CLIENT_ID,
                     client_secret=Config.SPOTIFY_CLIENT_SECRET,
-                    redirect_uri=Config.REDIRECT_URI,
+                    redirect_uri=redirect_uri,
                     scope = 'streaming user-read-private user-read-email user-top-read user-read-recently-played user-library-read playlist-modify-public playlist-modify-private user-modify-playback-state user-read-playback-state'
                 )
                 auth_url = auth_manager.get_authorize_url()
