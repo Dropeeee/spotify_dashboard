@@ -106,16 +106,6 @@ def load_user_data_from_files(user_folder):
     print(f"✅ {len(df):,} records loaded from user files")
     return df
 
-def get_redirect_uri():
-    """Determinar redirect URI dinamicamente baseado no ambiente"""
-    if request and request.url_root:
-        base_url = request.url_root.rstrip('/')
-        redirect_uri = f"{base_url}/callback"
-        print(f"🔗 Using dynamic redirect URI: {redirect_uri}")
-        return redirect_uri
-    
-    return Config.REDIRECT_URI  # fallback para desenvolvimento
-
 
 def get_spotify_client():
     """Spotify client with all required scopes"""
