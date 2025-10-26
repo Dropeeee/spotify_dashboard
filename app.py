@@ -26,13 +26,10 @@ app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = Config.SECRET_KEY
 
-# ✅ ADICIONAR configuração de sessão:
+# Ã¢Å“â€¦ ADICIONAR configuraÃƒÂ§ÃƒÂ£o de sessÃƒÂ£o:
 from datetime import timedelta
 
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'false'
-
-
-# Configuração baseada no ambiente
+# ConfiguraÃƒÂ§ÃƒÂ£o baseada no ambiente
 if os.environ.get('FLASK_ENV') == 'production':
     app.config['SESSION_COOKIE_SECURE'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'None'
@@ -49,7 +46,7 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 def setup_session():
     """Setup session permanente"""
     session.permanent = True
-    # NÃO criar user_id aqui! Criar só em /api/save-username
+    # NÃƒÆ’O criar user_id aqui! Criar sÃƒÂ³ em /api/save-username
 
 
 
@@ -61,29 +58,29 @@ os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
 app_cache = {}
 
 # ============================================================================
-# FUNÇÕES MULTI-USER
+# FUNÃƒâ€¡Ãƒâ€¢ES MULTI-USER
 # ============================================================================
 
 def allowed_file(filename):
-    """Valida se ficheiro é .json"""
+    """Valida se ficheiro ÃƒÂ© .json"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'json'
 
 def get_user_folder():
-    """Retorna pasta única por utilizador"""
+    """Retorna pasta ÃƒÂºnica por utilizador"""
     if 'user_id' not in session:
-        raise ValueError("❌ user_id não existe na sessão!")
+        raise ValueError("Ã¢ÂÅ’ user_id nÃƒÂ£o existe na sessÃƒÂ£o!")
     user_folder = os.path.join(Config.UPLOAD_FOLDER, session['user_id'])
     os.makedirs(user_folder, exist_ok=True)
     return user_folder
 
 def load_user_data_from_files(user_folder):
-    """Carrega dados de ficheiros JSON de uma pasta específica"""
+    """Carrega dados de ficheiros JSON de uma pasta especÃƒÂ­fica"""
     json_files = [f for f in os.listdir(user_folder) if f.endswith('.json')]
     
     if not json_files:
         raise FileNotFoundError(f"No JSON files in {user_folder}")
     
-    print(f"📊 Loading {len(json_files)} JSON files from user folder...")
+    print(f"Ã°Å¸â€œÅ  Loading {len(json_files)} JSON files from user folder...")
     all_data = []
     
     for json_file in json_files:
@@ -94,7 +91,7 @@ def load_user_data_from_files(user_folder):
                 if isinstance(data, list):
                     all_data.extend(data)
         except Exception as e:
-            print(f"❌ Error loading {json_file}: {e}")
+            print(f"Ã¢ÂÅ’ Error loading {json_file}: {e}")
             continue
     
     if not all_data:
@@ -106,8 +103,9 @@ def load_user_data_from_files(user_folder):
     if df['ts'].dt.tz is not None:
         df['ts'] = df['ts'].dt.tz_convert(None)
     
-    print(f"✅ {len(df):,} records loaded from user files")
+    print(f"Ã¢Å“â€¦ {len(df):,} records loaded from user files")
     return df
+
 
 
 def get_spotify_client():
@@ -120,12 +118,12 @@ def get_spotify_client():
         cache_path = '.cache-default'
 
     try:
-        redirect_uri = Config.REDIRECT_URI  # ✅ ADICIONA ESTA LINHA
+        redirect_uri = Config.REDIRECT_URI  # Ã¢Å“â€¦ ADICIONA ESTA LINHA
 
         auth_manager = SpotifyOAuth(
             client_id=Config.SPOTIFY_CLIENT_ID,
             client_secret=Config.SPOTIFY_CLIENT_SECRET,
-            redirect_uri=redirect_uri,  # ✅ USA A VARIÁVEL DINÂMICA
+            redirect_uri=redirect_uri,  # Ã¢Å“â€¦ USA A VARIÃƒÂVEL DINÃƒâ€šMICA
 
         )
 
@@ -140,7 +138,7 @@ def get_spotify_client():
         return spotipy.Spotify(auth=token_info['access_token'])
         
     except Exception as e:
-        print(f"❌ Authentication error: {e}")
+        print(f"Ã¢ÂÅ’ Authentication error: {e}")
         return None
 def load_local_data():
     """Load data ISOLADO por utilizador OU de path local"""
@@ -156,13 +154,13 @@ def load_local_data():
                 # Verificar cache em disco
                 cache_file = os.path.join(user_folder, 'processed_data.pkl')
                 if os.path.exists(cache_file):
-                    print(f"📊 Loading cached data for user {session['user_id'][:8]}...")
+                    print(f"Ã°Å¸â€œÅ  Loading cached data for user {session['user_id'][:8]}...")
                     df_music = pd.read_pickle(cache_file)
                     app_cache[cache_key] = df_music
                     return df_music
                 
                 # Processar ficheiros uploaded
-                print(f"📊 Processing uploaded files for user {session['user_id'][:8]}...")
+                print(f"Ã°Å¸â€œÅ  Processing uploaded files for user {session['user_id'][:8]}...")
                 df = load_user_data_from_files(user_folder)
                 df_music = filter_music(df)
                 
@@ -171,11 +169,11 @@ def load_local_data():
                 app_cache[cache_key] = df_music
                 session['data_loaded'] = True
                 
-                print(f"✅ {len(df_music):,} records processed from uploaded files")
+                print(f"Ã¢Å“â€¦ {len(df_music):,} records processed from uploaded files")
                 return df_music
                 
             except Exception as e:
-                print(f"❌ Error loading user data: {e}")
+                print(f"Ã¢ÂÅ’ Error loading user data: {e}")
                 import traceback
                 traceback.print_exc()
                 app_cache[cache_key] = pd.DataFrame()
@@ -186,13 +184,13 @@ def load_local_data():
     else:
         if 'df_music_default' not in app_cache:
             try:
-                print("📊 Loading from hardcoded path (development mode)")
+                print("Ã°Å¸â€œÅ  Loading from hardcoded path (development mode)")
                 df = load_streaming_history()
                 df_music = filter_music(df)
                 app_cache['df_music_default'] = df_music
-                print(f"✅ {len(df_music):,} records loaded")
+                print(f"Ã¢Å“â€¦ {len(df_music):,} records loaded")
             except Exception as e:
-                print(f"❌ Error: {e}")
+                print(f"Ã¢ÂÅ’ Error: {e}")
                 app_cache['df_music_default'] = pd.DataFrame()
         
         return app_cache['df_music_default']
@@ -229,20 +227,20 @@ def get_top_tracks_api_with_images(time_range, limit=50):
             
             return tracks
         except Exception as e:
-            print(f"❌ API error: {e}")
+            print(f"Ã¢ÂÅ’ API error: {e}")
             return []
     return []
 
 def search_track_get_id(track_name, artist_name):
     sp = get_spotify_client()
     if not sp:
-        print(f"❌ No Spotify client available")
+        print(f"Ã¢ÂÅ’ No Spotify client available")
         return None
     
     try:
         # BUSCA SIMPLES - Usa o Spotify search normal
         query = f'track:"{track_name}" artist:"{artist_name}"'
-        print(f"🔍 Searching: {query}")
+        print(f"Ã°Å¸â€Â Searching: {query}")
         
         results = sp.search(q=query, type='track', limit=5)
         
@@ -256,7 +254,7 @@ def search_track_get_id(track_name, artist_name):
             image_url = None
             if track['album']['images']:
                 images = track['album']['images']
-                # images é ARRAY, usa índice 1 ou 0
+                # images ÃƒÂ© ARRAY, usa ÃƒÂ­ndice 1 ou 0
                 image_url = images[1]['url'] if len(images) > 1 else images[0]['url']
             
             return {
@@ -269,11 +267,11 @@ def search_track_get_id(track_name, artist_name):
                 'preview_url': track['preview_url']
             }
         
-        print(f"   ❌ No results found")
+        print(f"   Ã¢ÂÅ’ No results found")
         return None
     
     except Exception as e:
-        print(f"❌ Search error for '{track_name}': {e}")
+        print(f"Ã¢ÂÅ’ Search error for '{track_name}': {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -288,7 +286,7 @@ def enhance_data_with_spotify_ids(data, data_type='track'):
     
     enhanced_data = []
     
-    print(f"🔍 Enhancing {len(data)} {data_type}s with Spotify IDs...")
+    print(f"Ã°Å¸â€Â Enhancing {len(data)} {data_type}s with Spotify IDs...")
     
     for i, item in enumerate(data):
         enhanced_item = item.copy()
@@ -303,9 +301,9 @@ def enhance_data_with_spotify_ids(data, data_type='track'):
                 track_data = search_track_get_id(track_name, artist_name)
                 if track_data:
                     enhanced_item.update(track_data)
-                    print(f"    ✅ Enhanced with ID: {track_data['id']}")
+                    print(f"    Ã¢Å“â€¦ Enhanced with ID: {track_data['id']}")
                 else:
-                    print(f"    ❌ No ID found")
+                    print(f"    Ã¢ÂÅ’ No ID found")
             
             elif data_type == 'artist':
                 artist_name = item.get('enhanced_name') or item.get('artist_key', '')
@@ -330,13 +328,13 @@ def enhance_data_with_spotify_ids(data, data_type='track'):
                         enhanced_item['image_url'] = album['images'][1]['url'] if len(album['images']) > 1 else album['images'][0]['url']
         
         except Exception as e:
-            print(f"    ❌ Error enhancing {item}: {e}")
+            print(f"    Ã¢ÂÅ’ Error enhancing {item}: {e}")
         
         enhanced_data.append(enhanced_item)
     
     # Count how many IDs we got
     ids_found = sum(1 for item in enhanced_data if item.get('id') or item.get('artist_id') or item.get('album_id'))
-    print(f"✅ Enhanced {ids_found}/{len(data)} items with Spotify IDs")
+    print(f"Ã¢Å“â€¦ Enhanced {ids_found}/{len(data)} items with Spotify IDs")
     
     return enhanced_data
 
@@ -359,12 +357,12 @@ def search_tracks_for_playlist(track_keys):
     """Search tracks on Spotify for playlist creation"""
     sp = get_spotify_client()
     if not sp:
-        print("❌ Spotify client not available")
+        print("Ã¢ÂÅ’ Spotify client not available")
         return []
     
     found_tracks = []
     
-    print(f"🔍 Searching {len(track_keys)} tracks on Spotify...")
+    print(f"Ã°Å¸â€Â Searching {len(track_keys)} tracks on Spotify...")
     
     for i, track_key in enumerate(track_keys):  # Use ALL tracks provided
         try:
@@ -380,27 +378,27 @@ def search_tracks_for_playlist(track_keys):
             
             if track_data:
                 found_tracks.append(track_data['uri'])
-                print(f"  ✅ [{i+1}/{len(track_keys)}] Found: {track_data['name']} - {track_data['artist']}")
+                print(f"  Ã¢Å“â€¦ [{i+1}/{len(track_keys)}] Found: {track_data['name']} - {track_data['artist']}")
             else:
-                print(f"  ❌ [{i+1}/{len(track_keys)}] Not found: {track_key}")
+                print(f"  Ã¢ÂÅ’ [{i+1}/{len(track_keys)}] Not found: {track_key}")
                     
         except Exception as e:
-            print(f"    ❌ Error searching {track_key}: {e}")
+            print(f"    Ã¢ÂÅ’ Error searching {track_key}: {e}")
             continue
     
-    print(f"✅ {len(found_tracks)} tracks found out of {len(track_keys)} requested")
+    print(f"Ã¢Å“â€¦ {len(found_tracks)} tracks found out of {len(track_keys)} requested")
     return found_tracks
 
 # ========== CORRECT ANALYTICS FUNCTIONS ==========
 
 def repeat_spirals_max_single_day(df, n=50, time_period='all'):
     """
-    REPEAT SPIRALS: O número máximo de vezes que ouviste uma música NUM SÓ DIA/SEMANA/MÊS no período
-    APENAS com plays INTENTIONAL (tu escolheste a música)
+    REPEAT SPIRALS: O nÃƒÂºmero mÃƒÂ¡ximo de vezes que ouviste uma mÃƒÂºsica NUM SÃƒâ€œ DIA/SEMANA/MÃƒÅ S no perÃƒÂ­odo
+    APENAS com plays INTENTIONAL (tu escolheste a mÃƒÂºsica)
 
     Args:
         df: DataFrame filtrado
-        n: Número de resultados
+        n: NÃƒÂºmero de resultados
         time_period: 'day', 'week', 'month', ou 'all'
     """
     if df.empty:
@@ -441,7 +439,7 @@ def repeat_spirals_max_single_day(df, n=50, time_period='all'):
 
 def consecutive_days_listening(df, n=50):
     """
-    REPEAT DAYS: O número máximo de DIAS SEGUIDOS que ouviste uma música no período
+    REPEAT DAYS: O nÃƒÂºmero mÃƒÂ¡ximo de DIAS SEGUIDOS que ouviste uma mÃƒÂºsica no perÃƒÂ­odo
     """
     if df.empty:
         return []
@@ -484,7 +482,7 @@ def consecutive_days_listening(df, n=50):
 def top_tracks_really_played(df, n=50):
     """
     TOP TRACKS com APENAS plays INTENTIONAL (REALLY PLAYED)
-    Filtra apenas músicas que tu escolheste ouvir
+    Filtra apenas mÃƒÂºsicas que tu escolheste ouvir
     """
     if df.empty:
         return []
@@ -511,7 +509,7 @@ def top_tracks_really_played(df, n=50):
 def top_artists_really_played(df, n=50):
     """
     TOP ARTISTS com APENAS plays INTENTIONAL (REALLY PLAYED)
-    Filtra apenas músicas que tu escolheste ouvir
+    Filtra apenas mÃƒÂºsicas que tu escolheste ouvir
     """
     if df.empty:
         return []
@@ -537,7 +535,7 @@ def top_artists_really_played(df, n=50):
 def top_albums_really_played(df, n=50):
     """
     TOP ALBUMS com APENAS plays INTENTIONAL (REALLY PLAYED)
-    Filtra apenas músicas que tu escolheste ouvir
+    Filtra apenas mÃƒÂºsicas que tu escolheste ouvir
     """
     if df.empty:
         return []
@@ -599,15 +597,15 @@ def save_username():
     if not username or len(username) < 2:
         return jsonify({'success': False, 'error': 'Invalid username'}), 400
     
-    # ✅ CRIAR user_id AQUI (só quando user guarda username)
+    # Ã¢Å“â€¦ CRIAR user_id AQUI (sÃƒÂ³ quando user guarda username)
     if 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
-        print(f"\n🆔 NEW user_id created: {session['user_id']}")
+        print(f"\nÃ°Å¸â€ â€ NEW user_id created: {session['user_id']}")
     
     session['username'] = username
     session.modified = True
     
-    print(f"✅ Username saved: {username}")
+    print(f"Ã¢Å“â€¦ Username saved: {username}")
     print(f"   user_id: {session['user_id'][:8]}...")
     
     return jsonify({'success': True, 'username': username}), 200
@@ -629,7 +627,7 @@ def upload_files():
         filepath = os.path.join(user_folder, filename)
         
         file.save(filepath)
-        print(f"✅ File uploaded: {filename}")
+        print(f"Ã¢Å“â€¦ File uploaded: {filename}")
         
         return jsonify({
             'success': True,
@@ -652,7 +650,7 @@ def upload_complete():
     session['file_count'] = len(json_files)
     session.modified = True
     
-    print(f"✅ Upload complete: {len(json_files)} files")
+    print(f"Ã¢Å“â€¦ Upload complete: {len(json_files)} files")
     
     return jsonify({
         'success': True,
@@ -668,12 +666,12 @@ def spotify_auth():
     
     cache_path = os.path.join(get_user_folder(), '.spotify_cache')
     
-    redirect_uri = Config.REDIRECT_URI
+    redirect_uri = Config.REDIRECT_URI  # Ã¢Å“â€¦ ADICIONA
     
     auth_manager = SpotifyOAuth(
         client_id=Config.SPOTIFY_CLIENT_ID,
         client_secret=Config.SPOTIFY_CLIENT_SECRET,
-        redirect_uri=redirect_uri,  # ✅ USA DINÂMICO
+        redirect_uri=redirect_uri,  # Ã¢Å“â€¦ USA DINÃƒâ€šMICO
         scope='user-top-read playlist-modify-public playlist-modify-private streaming user-read-private user-modify-playback-state user-read-playback-state',
         cache_path=cache_path,
         show_dialog=True
@@ -684,11 +682,11 @@ def spotify_auth():
 
 @app.route('/callback')
 def callback():
-    """OAuth callback - processa autenticação Spotify"""
+    """OAuth callback - processa autenticaÃƒÂ§ÃƒÂ£o Spotify"""
     code = request.args.get('code')
     
     if not code:
-        print("❌ No code in callback")
+        print("Ã¢ÂÅ’ No code in callback")
         return redirect(url_for('home'))
     
     # DEBUG
@@ -708,23 +706,23 @@ def callback():
             
             # Verificar ficheiros
             json_files = [f for f in os.listdir(user_folder) if f.endswith('.json')]
-            print(f"📁 User folder: {user_folder}")
-            print(f"📄 JSON files: {len(json_files)}")
+            print(f"Ã°Å¸â€œÂ User folder: {user_folder}")
+            print(f"Ã°Å¸â€œâ€ž JSON files: {len(json_files)}")
             
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"Ã¢ÂÅ’ Error: {e}")
             cache_path = '.cache-default'
     else:
         cache_path = '.cache-default'
-        print("📁 Using default cache")
+        print("Ã°Å¸â€œÂ Using default cache")
     
     # OAuth
-    redirect_uri = Config.REDIRECT_URI # ✅ ADICIONA
+    redirect_uri = Config.REDIRECT_URI # Ã¢Å“â€¦ ADICIONA
     
     auth_manager = SpotifyOAuth(
         client_id=Config.SPOTIFY_CLIENT_ID,
         client_secret=Config.SPOTIFY_CLIENT_SECRET,
-        redirect_uri=redirect_uri,  # ✅ USA DINÂMICO
+        redirect_uri=redirect_uri,  # Ã¢Å“â€¦ USA DINÃƒâ€šMICO
         scope='user-top-read playlist-modify-public playlist-modify-private streaming user-read-private user-modify-playback-state user-read-playback-state',
         cache_path=cache_path
     )
@@ -735,33 +733,33 @@ def callback():
         if not token_info:
             raise ValueError("Failed to get token")
         
-        print("✅ Spotify token obtained")
+        print("Ã¢Å“â€¦ Spotify token obtained")
         session['spotify_authenticated'] = True
         
         # CARREGAR DADOS
         if session.get('files_uploaded'):
-            print("\n📊 Loading uploaded files...")
+            print("\nÃ°Å¸â€œÅ  Loading uploaded files...")
             
             try:
                 df_music = load_local_data()
                 
                 if not df_music.empty:
                     session['data_loaded'] = True
-                    print(f"✅ {len(df_music):,} records loaded")
+                    print(f"Ã¢Å“â€¦ {len(df_music):,} records loaded")
                 else:
-                    print("❌ DataFrame empty!")
+                    print("Ã¢ÂÅ’ DataFrame empty!")
                     
             except Exception as e:
-                print(f"❌ Error: {e}")
+                print(f"Ã¢ÂÅ’ Error: {e}")
                 import traceback
                 traceback.print_exc()
         else:
             # Dev mode
-            print("\n📊 Dev mode...")
+            print("\nÃ°Å¸â€œÅ  Dev mode...")
             df_music = load_local_data()
             if not df_music.empty:
                 session['data_loaded'] = True
-                print(f"✅ {len(df_music):,} records")
+                print(f"Ã¢Å“â€¦ {len(df_music):,} records")
         
         session.modified = True
         
@@ -775,7 +773,7 @@ def callback():
         return response
         
     except Exception as e:
-        print(f"\n❌ CALLBACK ERROR: {e}")
+        print(f"\nÃ¢ÂÅ’ CALLBACK ERROR: {e}")
         import traceback
         traceback.print_exc()
         return redirect(url_for('home'))
@@ -783,7 +781,7 @@ def callback():
 
 @app.route('/logout')
 def logout():
-    """Limpa sessão e dados do utilizador"""
+    """Limpa sessÃƒÂ£o e dados do utilizador"""
     if 'user_id' in session:
         user_folder = os.path.join(Config.UPLOAD_FOLDER, session['user_id'])
         if os.path.exists(user_folder):
@@ -796,14 +794,14 @@ def logout():
 @app.route('/api/artist_top_tracks')
 def get_artist_top_tracks():
     """Get top 10 tracks for a specific artist"""
-    artist_name = request.args.get('artist_name', '').strip()  # ✅ STRIP aqui
+    artist_name = request.args.get('artist_name', '').strip()  # Ã¢Å“â€¦ STRIP aqui
     
     df = load_local_data()
     if df.empty:
         return jsonify({'success': False, 'error': 'No data available'})
     
     try:
-        # ✅ STRIP na coluna do DataFrame também
+        # Ã¢Å“â€¦ STRIP na coluna do DataFrame tambÃƒÂ©m
         df_artist = df[df['master_metadata_album_artist_name'].str.strip() == artist_name].copy()
         
         if df_artist.empty:
@@ -827,22 +825,22 @@ def get_artist_top_tracks():
             result.append({
                 'rank': idx,
                 'track_key': track_key,
-                'name': track_name.strip(),  # ✅ STRIP
-                'artist': artist.strip(),     # ✅ STRIP
+                'name': track_name.strip(),  # Ã¢Å“â€¦ STRIP
+                'artist': artist.strip(),     # Ã¢Å“â€¦ STRIP
                 'plays': int(row['plays']),
                 'image_url': None
             })
         
-        # ✅ Enrich TODAS as 10 (não só top 5)
-        print(f"🔍 Enriquecendo TODAS as 10 músicas com imagens para artist: {artist_name}")
-        for i, item in enumerate(result):  # ✅ TODAS
+        # Ã¢Å“â€¦ Enrich TODAS as 10 (nÃƒÂ£o sÃƒÂ³ top 5)
+        print(f"Ã°Å¸â€Â Enriquecendo TODAS as 10 mÃƒÂºsicas com imagens para artist: {artist_name}")
+        for i, item in enumerate(result):  # Ã¢Å“â€¦ TODAS
             try:
                 track_data = search_track_get_id(item['name'], item['artist'])
                 if track_data:
                     item['image_url'] = track_data.get('image_url')
-                    print(f"   ✅ [{i+1}] {item['name']} - imagem encontrada")
+                    print(f"   Ã¢Å“â€¦ [{i+1}] {item['name']} - imagem encontrada")
             except Exception as e:
-                print(f"   ❌ Erro na track {i+1}: {e}")
+                print(f"   Ã¢ÂÅ’ Erro na track {i+1}: {e}")
                 pass
         
         return jsonify({
@@ -861,21 +859,21 @@ def get_artist_top_tracks():
 @app.route('/api/album_top_tracks')
 def get_album_top_tracks():
     """Get top 10 tracks for a specific album"""
-    album_name = request.args.get('album_name', '').strip()  # ✅ STRIP aqui
+    album_name = request.args.get('album_name', '').strip()  # Ã¢Å“â€¦ STRIP aqui
     
     df = load_local_data()
     if df.empty:
         return jsonify({'success': False, 'error': 'No data available'})
     
     try:
-        # ✅ STRIP na coluna do DataFrame também
+        # Ã¢Å“â€¦ STRIP na coluna do DataFrame tambÃƒÂ©m
         df_album = df[df['master_metadata_album_album_name'].str.strip() == album_name].copy()
         
         if df_album.empty:
             # Debug: Mostrar albums similares
             all_albums = df['master_metadata_album_album_name'].str.strip().unique()
             similar = [a for a in all_albums if album_name.lower() in a.lower()][:5]
-            print(f"❌ Album '{album_name}' não encontrado. Similares: {similar}")
+            print(f"Ã¢ÂÅ’ Album '{album_name}' nÃƒÂ£o encontrado. Similares: {similar}")
             return jsonify({'success': False, 'error': f'No tracks found for album: {album_name}'})
         
         # Get top 10 tracks
@@ -896,22 +894,22 @@ def get_album_top_tracks():
             result.append({
                 'rank': idx,
                 'track_key': track_key,
-                'name': track_name.strip(),  # ✅ STRIP
-                'artist': artist.strip(),     # ✅ STRIP
+                'name': track_name.strip(),  # Ã¢Å“â€¦ STRIP
+                'artist': artist.strip(),     # Ã¢Å“â€¦ STRIP
                 'plays': int(row['plays']),
                 'image_url': None
             })
         
-        # ✅ Enrich TODAS as 10 (não só top 5)
-        print(f"🔍 Enriquecendo TODAS as 10 músicas com imagens para album: {album_name}")
-        for i, item in enumerate(result):  # ✅ TODAS
+        # Ã¢Å“â€¦ Enrich TODAS as 10 (nÃƒÂ£o sÃƒÂ³ top 5)
+        print(f"Ã°Å¸â€Â Enriquecendo TODAS as 10 mÃƒÂºsicas com imagens para album: {album_name}")
+        for i, item in enumerate(result):  # Ã¢Å“â€¦ TODAS
             try:
                 track_data = search_track_get_id(item['name'], item['artist'])
                 if track_data:
                     item['image_url'] = track_data.get('image_url')
-                    print(f"   ✅ [{i+1}] {item['name']} - imagem encontrada")
+                    print(f"   Ã¢Å“â€¦ [{i+1}] {item['name']} - imagem encontrada")
             except Exception as e:
-                print(f"   ❌ Erro na track {i+1}: {e}")
+                print(f"   Ã¢ÂÅ’ Erro na track {i+1}: {e}")
                 pass
         
         return jsonify({
@@ -932,17 +930,17 @@ def get_album_top_tracks():
 def home():
     """Landing page ou dashboard"""
     
-    # ✅ DEBUG
+    # Ã¢Å“â€¦ DEBUG
     print(f"\n[HOME] files_uploaded: {session.get('files_uploaded')}")
     print(f"[HOME] data_loaded: {session.get('data_loaded')}")
     print(f"[HOME] spotify_authenticated: {session.get('spotify_authenticated')}\n")
     
     if session.get('files_uploaded'):
         if session.get('data_loaded') and session.get('spotify_authenticated'):
-            print("→ Rendering dashboard (multi-user mode)")
+            print("Ã¢â€ â€™ Rendering dashboard (multi-user mode)")
             return render_template('dashboard.html', username=session.get('username', 'User'))
         else:
-            print("→ Rendering landing (need auth or data)")
+            print("Ã¢â€ â€™ Rendering landing (need auth or data)")
             return render_template('landing.html')
     else:
         # Dev mode
@@ -952,11 +950,72 @@ def home():
             sp = get_spotify_client()
             
             if sp:
-                print("→ Rendering dashboard (dev mode)")
+                print("Ã¢â€ â€™ Rendering dashboard (dev mode)")
                 return render_template('dashboard.html', username=session.get('username', 'User'))
             else:
                 # HTML inline para dev
-                return redirect(url_for('spotify_auth'))
+                redirect_uri = Config.REDIRECT_URI # Adicionar esta linha
+
+                auth_manager = SpotifyOAuth(
+                    client_id=Config.SPOTIFY_CLIENT_ID,
+                    client_secret=Config.SPOTIFY_CLIENT_SECRET,
+                    redirect_uri=redirect_uri,
+                    scope = 'streaming user-read-private user-read-email user-top-read user-read-recently-played user-library-read playlist-modify-public playlist-modify-private user-modify-playback-state user-read-playback-state'
+                )
+                auth_url = auth_manager.get_authorize_url()
+                
+                return f'''
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Connect Spotify</title>
+                    <style>
+                        body {{
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            height: 100vh;
+                            margin: 0;
+                        }}
+                        .container {{
+                            background: white;
+                            padding: 3rem;
+                            border-radius: 20px;
+                            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                            text-align: center;
+                            max-width: 500px;
+                        }}
+                        h1 {{ color: #333; margin-bottom: 1rem; }}
+                        p {{ color: #666; margin-bottom: 2rem; }}
+                        .btn {{
+                            background: #1DB954;
+                            color: white;
+                            padding: 15px 40px;
+                            border-radius: 50px;
+                            text-decoration: none;
+                            font-weight: bold;
+                            font-size: 1.1rem;
+                            display: inline-block;
+                            transition: transform 0.2s;
+                        }}
+                        .btn:hover {{ transform: scale(1.05); }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>Ã°Å¸Å½Âµ Spotify Dashboard</h1>
+                        <p>Connect your Spotify account</p>
+                        <a href="{auth_url}" class="btn">Connect Spotify</a>
+                    </div>
+                </body>
+                </html>
+                '''
+        
+        print("Ã¢â€ â€™ Rendering landing (no data)")
+        return render_template('landing.html')
+
 
 
 # ========== API SEARCH ENDPOINT ==========
@@ -970,18 +1029,18 @@ def api_search_track():
     if not track_name:
         return jsonify({'success': False, 'error': 'Track name required'})
     
-    print(f"🔍 API Search request: {track_name} - {artist_name}")
+    print(f"Ã°Å¸â€Â API Search request: {track_name} - {artist_name}")
     
     track_data = search_track_get_id(track_name, artist_name)
     
     if track_data:
-        print(f"✅ API Search success: {track_data['name']} - {track_data['artist']} (ID: {track_data['id']})")
+        print(f"Ã¢Å“â€¦ API Search success: {track_data['name']} - {track_data['artist']} (ID: {track_data['id']})")
         return jsonify({
             'success': True,
             'track': track_data
         })
     else:
-        print(f"❌ API Search failed: {track_name} - {artist_name}")
+        print(f"Ã¢ÂÅ’ API Search failed: {track_name} - {artist_name}")
         return jsonify({
             'success': False,
             'error': 'Track not found on Spotify'
@@ -1143,7 +1202,7 @@ def api_local_tracks_really_played():
         # Search Spotify IDs for ALL tracks
         tracks_with_ids = enhance_data_with_spotify_ids(tracks_list, 'track')
 
-        return jsonify({'success': True, 'data': tracks_with_ids})  # ✅ CORRETO
+        return jsonify({'success': True, 'data': tracks_with_ids})  # Ã¢Å“â€¦ CORRETO
     except Exception as e:
         return jsonify(success=False, error=str(e))
 
@@ -1324,7 +1383,7 @@ def api_create_custom_playlist():
         track_keys = data.get('track_keys', [])
         filters = data.get('filters', {})
         
-        print(f"🎵 Creating playlist: '{title}' ({playlist_type}) with {len(track_keys)} tracks")
+        print(f"Ã°Å¸Å½Âµ Creating playlist: '{title}' ({playlist_type}) with {len(track_keys)} tracks")
         
         # Validation
         if not track_keys:
@@ -1339,9 +1398,9 @@ def api_create_custom_playlist():
         try:
             user_info = sp.current_user()
             user_id = user_info['id']
-            print(f"✅ Connected as: {user_info.get('display_name', user_id)}")
+            print(f"Ã¢Å“â€¦ Connected as: {user_info.get('display_name', user_id)}")
         except Exception as e:
-            print(f"❌ User info error: {e}")
+            print(f"Ã¢ÂÅ’ User info error: {e}")
             return jsonify({'success': False, 'error': f'Authentication error: {str(e)}'})
         
         # Search tracks on Spotify
@@ -1356,7 +1415,7 @@ def api_create_custom_playlist():
             if filters.get('year') != 'all' or filters.get('month') != 'all':
                 playlist_description += f" (Filters: {filters})"
             
-            print(f"🎵 Creating playlist '{title}' for user {user_id}")
+            print(f"Ã°Å¸Å½Âµ Creating playlist '{title}' for user {user_id}")
             
             playlist = sp.user_playlist_create(
                 user=user_id,
@@ -1366,10 +1425,10 @@ def api_create_custom_playlist():
                 description=playlist_description
             )
             
-            print(f"✅ Playlist created: {playlist['id']}")
+            print(f"Ã¢Å“â€¦ Playlist created: {playlist['id']}")
             
         except Exception as e:
-            print(f"❌ Playlist creation error: {e}")
+            print(f"Ã¢ÂÅ’ Playlist creation error: {e}")
             return jsonify({'success': False, 'error': f'Failed to create playlist: {str(e)}'})
         
         # Add tracks in batches of 100
@@ -1381,12 +1440,12 @@ def api_create_custom_playlist():
                 batch = track_uris[i:i + batch_size]
                 sp.playlist_add_items(playlist['id'], batch)
                 tracks_added += len(batch)
-                print(f"  ✅ Added batch {i//batch_size + 1}: {len(batch)} tracks")
+                print(f"  Ã¢Å“â€¦ Added batch {i//batch_size + 1}: {len(batch)} tracks")
             
-            print(f"✅ Total tracks added: {tracks_added}")
+            print(f"Ã¢Å“â€¦ Total tracks added: {tracks_added}")
             
         except Exception as e:
-            print(f"❌ Error adding tracks: {e}")
+            print(f"Ã¢ÂÅ’ Error adding tracks: {e}")
             return jsonify({'success': False, 'error': f'Playlist created but failed to add tracks: {str(e)}'})
         
         return jsonify({
@@ -1398,34 +1457,34 @@ def api_create_custom_playlist():
         })
         
     except Exception as e:
-        print(f"❌ CRITICAL ERROR creating playlist: {e}")
+        print(f"Ã¢ÂÅ’ CRITICAL ERROR creating playlist: {e}")
         return jsonify({'success': False, 'error': f'Critical error: {str(e)}'})
 
 if __name__ == '__main__':
     print("=" * 80)
-    print("🎵 SPOTIFY PEDRO - ADVANCED ANALYTICS DASHBOARD")
+    print("Ã°Å¸Å½Âµ SPOTIFY PEDRO - ADVANCED ANALYTICS DASHBOARD")
     print("=" * 80)
-    print("✅ Features:")
-    print("   📊 Advanced music listening analytics")
-    print("   🎵 Spotify API integration with automated search") 
-    print("   🎧 Professional music player with FORCED autoplay")
-    print("   🖼️  High-quality images and metadata")
-    print("   📈 Interactive data visualizations")
-    print("   📅 Calendar view for individual tracks")
-    print("   🔄 REPEAT SPIRALS: Max plays in single day")
-    print("   📆 REPEAT DAYS: Max consecutive days listening")
-    print("   🎵 Custom playlist creation (TOP 50)")
-    print("   📱 Responsive professional design")
-    print("   🎉 Professional notifications and UX")
+    print("Ã¢Å“â€¦ Features:")
+    print("   Ã°Å¸â€œÅ  Advanced music listening analytics")
+    print("   Ã°Å¸Å½Âµ Spotify API integration with automated search") 
+    print("   Ã°Å¸Å½Â§ Professional music player with FORCED autoplay")
+    print("   Ã°Å¸â€“Â¼Ã¯Â¸Â  High-quality images and metadata")
+    print("   Ã°Å¸â€œË† Interactive data visualizations")
+    print("   Ã°Å¸â€œâ€¦ Calendar view for individual tracks")
+    print("   Ã°Å¸â€â€ž REPEAT SPIRALS: Max plays in single day")
+    print("   Ã°Å¸â€œâ€  REPEAT DAYS: Max consecutive days listening")
+    print("   Ã°Å¸Å½Âµ Custom playlist creation (TOP 50)")
+    print("   Ã°Å¸â€œÂ± Responsive professional design")
+    print("   Ã°Å¸Å½â€° Professional notifications and UX")
     print()
-    print("🆕 Corrected analytics:")
-    print("   ✅ Repeat Spirals = MAX plays in ONE day")
-    print("   ✅ Repeat Days = MAX consecutive days")
-    print("   ✅ Calendar modal with full history (no filters)")
-    print("   ✅ FORCED autoplay system")
-    print("   ✅ Correct layout order")
+    print("Ã°Å¸â€ â€¢ Corrected analytics:")
+    print("   Ã¢Å“â€¦ Repeat Spirals = MAX plays in ONE day")
+    print("   Ã¢Å“â€¦ Repeat Days = MAX consecutive days")
+    print("   Ã¢Å“â€¦ Calendar modal with full history (no filters)")
+    print("   Ã¢Å“â€¦ FORCED autoplay system")
+    print("   Ã¢Å“â€¦ Correct layout order")
     print()
-    print("🌐 URL: http://localhost:5000")
-    print("🔑 Connect once for full functionality")
+    print("Ã°Å¸Å’Â URL: http://localhost:5000")
+    print("Ã°Å¸â€â€˜ Connect once for full functionality")
     print("=" * 80)
     app.run(debug=False, port=5000)
