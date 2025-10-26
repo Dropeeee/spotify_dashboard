@@ -29,6 +29,9 @@ app.secret_key = Config.SECRET_KEY
 # ✅ ADICIONAR configuração de sessão:
 from datetime import timedelta
 
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'false'
+
+
 # Configuração baseada no ambiente
 if os.environ.get('FLASK_ENV') == 'production':
     app.config['SESSION_COOKIE_SECURE'] = True
