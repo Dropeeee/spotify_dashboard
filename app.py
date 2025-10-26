@@ -956,68 +956,7 @@ def home():
                 return render_template('dashboard.html', username=session.get('username', 'User'))
             else:
                 # HTML inline para dev
-                redirect_uri = Config.REDIRECT_URI  # Adicionar esta linha
-
-                auth_manager = SpotifyOAuth(
-                    client_id=Config.SPOTIFY_CLIENT_ID,
-                    client_secret=Config.SPOTIFY_CLIENT_SECRET,
-                    redirect_uri=redirect_uri,
-                    scope = 'streaming user-read-private user-read-email user-top-read user-read-recently-played user-library-read playlist-modify-public playlist-modify-private user-modify-playback-state user-read-playback-state'
-                )
-                auth_url = auth_manager.get_authorize_url()
-                
-                return f'''
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Connect Spotify</title>
-                    <style>
-                        body {{
-                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            height: 100vh;
-                            margin: 0;
-                        }}
-                        .container {{
-                            background: white;
-                            padding: 3rem;
-                            border-radius: 20px;
-                            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                            text-align: center;
-                            max-width: 500px;
-                        }}
-                        h1 {{ color: #333; margin-bottom: 1rem; }}
-                        p {{ color: #666; margin-bottom: 2rem; }}
-                        .btn {{
-                            background: #1DB954;
-                            color: white;
-                            padding: 15px 40px;
-                            border-radius: 50px;
-                            text-decoration: none;
-                            font-weight: bold;
-                            font-size: 1.1rem;
-                            display: inline-block;
-                            transition: transform 0.2s;
-                        }}
-                        .btn:hover {{ transform: scale(1.05); }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>🎵 Spotify Dashboard</h1>
-                        <p>Connect your Spotify account</p>
-                        <a href="{auth_url}" class="btn">Connect Spotify</a>
-                    </div>
-                </body>
-                </html>
-                '''
-        
-        print("→ Rendering landing (no data)")
-        return render_template('landing.html')
-
+                return redirect(url_for('spotify_auth'))
 
 
 # ========== API SEARCH ENDPOINT ==========
