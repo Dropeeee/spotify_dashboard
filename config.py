@@ -12,7 +12,7 @@ class Config:
     # Spotify API (lê do .env)
     SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
     SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
-    REDIRECT_URI = os.environ.get('REDIRECT_URI', 'http://localhost:5000/callback')
+    REDIRECT_URI = os.environ.get('REDIRECT_URI', 'https://web-production-4121.up.railway.app/callback')
     
     # Flask
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-key-CHANGE')

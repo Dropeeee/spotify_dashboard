@@ -127,7 +127,7 @@ def get_spotify_client():
         cache_path = '.cache-default'
 
     try:
-        redirect_uri = get_redirect_uri()  # ✅ ADICIONA ESTA LINHA
+        redirect_uri = Config.REDIRECT_URI  # ✅ ADICIONA ESTA LINHA
 
         auth_manager = SpotifyOAuth(
             client_id=Config.SPOTIFY_CLIENT_ID,
@@ -675,7 +675,7 @@ def spotify_auth():
     
     cache_path = os.path.join(get_user_folder(), '.spotify_cache')
     
-    redirect_uri = get_redirect_uri()  # ✅ ADICIONA
+    redirect_uri = Config.REDIRECT_URI
     
     auth_manager = SpotifyOAuth(
         client_id=Config.SPOTIFY_CLIENT_ID,
@@ -726,7 +726,7 @@ def callback():
         print("📁 Using default cache")
     
     # OAuth
-    redirect_uri = get_redirect_uri()  # ✅ ADICIONA
+    redirect_uri = Config.REDIRECT_URI # ✅ ADICIONA
     
     auth_manager = SpotifyOAuth(
         client_id=Config.SPOTIFY_CLIENT_ID,
@@ -963,7 +963,7 @@ def home():
                 return render_template('dashboard.html', username=session.get('username', 'User'))
             else:
                 # HTML inline para dev
-                redirect_uri = get_redirect_uri()  # Adicionar esta linha
+                redirect_uri = Config.REDIRECT_URI  # Adicionar esta linha
 
                 auth_manager = SpotifyOAuth(
                     client_id=Config.SPOTIFY_CLIENT_ID,
