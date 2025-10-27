@@ -223,5 +223,3 @@ class SpotifyEnhancer:
             'uri': f'spotify:album:unknown'
         }
 
-# Instância global (configurar com as tuas credenciais)
-spotify_enhancer = SpotifyEnhancer()

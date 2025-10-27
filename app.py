@@ -10,6 +10,7 @@ import spotipy.util as util
 from datetime import datetime, timedelta
 import pandas as pd
 import json
+from spotify_api import SpotifyEnhancer
 from data_processing import (
     load_streaming_history, 
     filter_music,
@@ -18,13 +19,32 @@ from data_processing import (
     top_albums,
     daily_history,
     repeat_spirals_optimized,
-    viciado_tracks_top20
+    viciado_tracks_top20,
+    set_spotify_enhancer
 )
 from config import Config
+
+spotify_enhancer_instance = None
+
+def init_spotify_enhancer():
+    """Inicializa SpotifyEnhancer com credenciais do Config"""
+    global spotify_enhancer_instance
+    if spotify_enhancer_instance is None:
+        spotify_enhancer_instance = SpotifyEnhancer(
+            client_id=Config.SPOTIFY_CLIENT_ID,
+            client_secret=Config.SPOTIFY_CLIENT_SECRET
+        )
+        # Passar instância para data_processing
+        set_spotify_enhancer(spotify_enhancer_instance)
+        print(f"✅ SpotifyEnhancer inicializado (api_available={spotify_enhancer_instance.api_available})")
+    return spotify_enhancer_instance
 
 app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = Config.SECRET_KEY
+
+with app.app_context():
+    init_spotify_enhancer()
 
 # Ã¢Å“â€¦ ADICIONAR configuraÃƒÂ§ÃƒÂ£o de sessÃƒÂ£o:
 from datetime import timedelta
@@ -40,6 +60,7 @@ else:
 app.config['SESSION_COOKIE_NAME'] = 'spotify_dashboard_session'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+
 
 
 @app.before_request
@@ -60,6 +81,7 @@ app_cache = {}
 # ============================================================================
 # FUNÃƒâ€¡Ãƒâ€¢ES MULTI-USER
 # ============================================================================
+
 
 def allowed_file(filename):
     """Valida se ficheiro ÃƒÂ© .json"""

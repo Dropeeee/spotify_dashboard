@@ -14,11 +14,24 @@ import glob
 import os
 import json
 from datetime import datetime, timedelta
-from spotify_api import spotify_enhancer
 import numpy as np
 from collections import defaultdict
 import logging
 from fuzzywuzzy import fuzz
+from spotify_api import SpotifyEnhancer
+
+# Variável global para armazenar a instância
+_spotify_enhancer = None
+
+def set_spotify_enhancer(enhancer):
+    """Define a instância do SpotifyEnhancer"""
+    global _spotify_enhancer
+    _spotify_enhancer = enhancer
+
+def get_spotify_enhancer():
+    """Retorna a instância do SpotifyEnhancer"""
+    return _spotify_enhancer
+
 
 
 # ============================================================================
@@ -755,8 +768,10 @@ def enrich_with_spotify_metadata_fast(df, item_type='track', max_items=5):
                 track_name = track_artist[0] if len(track_artist) > 0 else ''
                 artist_name = track_artist[1] if len(track_artist) > 1 else ''
                 
-                metadata = spotify_enhancer.search_album_metadata(album_name, artist_name)               
-                METADATA_CACHE[cache_key] = metadata
+                enhancer = get_spotify_enhancer()
+                if enhancer and enhancer.api_available:
+                    metadata = enhancer.search_track_metadata(track_name, artist_name)
+
             else:
                 metadata = METADATA_CACHE[cache_key]
         
@@ -764,8 +779,10 @@ def enrich_with_spotify_metadata_fast(df, item_type='track', max_items=5):
             artist_name = str(row.get('artist_key', ''))
             cache_key = f"artist:{artist_name}"
             if cache_key not in METADATA_CACHE:
-                metadata = spotify_enhancer.search_artist_metadata(artist_name)
-                METADATA_CACHE[cache_key] = metadata
+                enhancer = get_spotify_enhancer()
+                if enhancer and enhancer.api_available:
+                    metadata = enhancer.search_artist_metadata(artist_name)
+
             else:
                 metadata = METADATA_CACHE[cache_key]
         
@@ -773,8 +790,10 @@ def enrich_with_spotify_metadata_fast(df, item_type='track', max_items=5):
             album_name = str(row.get('album_key', ''))
             cache_key = f"album:{album_name}"
             if cache_key not in METADATA_CACHE:
-                metadata = spotify_enhancer.search_album_metadata(album_name, "")
-                METADATA_CACHE[cache_key] = metadata
+                enhancer = get_spotify_enhancer()
+            if enhancer and enhancer.api_available:
+                metadata = enhancer.search_album_metadata(album_name, "")
+
             else:
                 metadata = METADATA_CACHE[cache_key]
         
@@ -816,7 +835,9 @@ def top_tracks(df, n=20, include_metadata=True):
     """Top tracks com opção de metadata da API"""
     result = top_tracks_ultra_fast(df, n)
     
-    if include_metadata and not result.empty and spotify_enhancer.api_available:
+    enhancer = get_spotify_enhancer()
+    if include_metadata and not result.empty and enhancer and enhancer.api_available:
+
         logger.info(f"🎵 A enriquecer top 5 músicas com Spotify API...")
         result = enrich_with_spotify_metadata_fast(result, 'track', 5)
     
@@ -827,7 +848,9 @@ def top_albums(df, n=20, include_metadata=True):
     """Top albums com opção de metadata da API"""
     result = top_albums_ultra_fast(df, n)
     
-    if include_metadata and not result.empty and spotify_enhancer.api_available:
+    enhancer = get_spotify_enhancer()
+    if include_metadata and not result.empty and enhancer and enhancer.api_available:
+
         logger.info(f"💿 A enriquecer top 5 álbuns com Spotify API...")
         result = enrich_with_spotify_metadata_fast(result, 'album', 5)
     
@@ -838,7 +861,9 @@ def top_artists(df, n=20, include_metadata=True):
     """Top artists com opção de metadata da API"""
     result = top_artists_ultra_fast(df, n)
     
-    if include_metadata and not result.empty and spotify_enhancer.api_available:
+    enhancer = get_spotify_enhancer()
+    if include_metadata and not result.empty and enhancer and enhancer.api_available:
+
         logger.info(f"🎤 A enriquecer top 5 artistas com Spotify API...")
         result = enrich_with_spotify_metadata_fast(result, 'artist', 5)
     
