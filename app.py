@@ -143,11 +143,13 @@ def get_spotify_client():
         redirect_uri = Config.REDIRECT_URI  # Ã¢Å“â€¦ ADICIONA ESTA LINHA
 
         auth_manager = SpotifyOAuth(
-            client_id=Config.SPOTIFY_CLIENT_ID,
-            client_secret=Config.SPOTIFY_CLIENT_SECRET,
-            redirect_uri=redirect_uri,  # Ã¢Å“â€¦ USA A VARIÃƒÂVEL DINÃƒâ€šMICA
+        client_id=Config.SPOTIFY_CLIENT_ID,
+        client_secret=Config.SPOTIFY_CLIENT_SECRET,
+        redirect_uri=redirect_uri,
+        scope=scope,  # ✅ ADICIONAR esta linha
+        cache_path=cache_path  # ✅ ADICIONAR esta linha
+    )
 
-        )
 
         
         token_info = auth_manager.get_cached_token()
@@ -162,63 +164,83 @@ def get_spotify_client():
     except Exception as e:
         print(f"Ã¢ÂÅ’ Authentication error: {e}")
         return None
+    
 def load_local_data():
     """Load data ISOLADO por utilizador OU de path local"""
-    
-    # Multi-user mode (se tem user_id E ficheiros uploaded)
-    if 'user_id' in session and session.get('files_uploaded', False):
-        cache_key = f'df_music_{session["user_id"]}'
+    # Multi-user mode (se tem user_id)
+    if 'user_id' in session:
+        try:
+            user_folder = get_user_folder()
+            # ✅ VERIFICAR se existem ficheiros JSON em disco
+            json_files = [f for f in os.listdir(user_folder) if f.endswith('.json')]
+            
+            if json_files:
+                # ✅ Utilizador tem dados! Processar
+                print(f"📁 User {session['user_id'][:8]} has {len(json_files)} files")
+                session['files_uploaded'] = True  # ✅ Atualizar sessão
+                
+                cache_key = f'df_music_{session["user_id"]}'
+                if cache_key not in app_cache:
+                    try:
+                        # Verificar cache em disco
+                        cache_file = os.path.join(user_folder, 'processed_data.pkl')
+                        
+                        if os.path.exists(cache_file):
+                            print(f"📁 Loading cached data for user {session['user_id'][:8]}...")
+                            df_music = pd.read_pickle(cache_file)
+                            app_cache[cache_key] = df_music
+                            return df_music
+                        
+                        # Processar ficheiros uploaded
+                        print(f"📁 Processing uploaded files for user {session['user_id'][:8]}...")
+                        df = load_user_data_from_files(user_folder)
+                        df_music = filter_music(df)
+                        
+                        # Guardar cache
+                        df_music.to_pickle(cache_file)
+                        app_cache[cache_key] = df_music
+                        session['data_loaded'] = True
+                        
+                        print(f"✅ {len(df_music):,} records processed from uploaded files")
+                        return df_music
+                    
+                    except Exception as e:
+                        print(f"❌ Error loading user data: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        app_cache[cache_key] = pd.DataFrame()
+                
+                return app_cache.get(cache_key, pd.DataFrame())
+            
+            else:
+                # ❌ User tem user_id mas NÃO tem ficheiros
+                print(f"⚠️ User {session['user_id'][:8]} has NO files")
+                return pd.DataFrame()
         
-        if cache_key not in app_cache:
-            try:
-                user_folder = get_user_folder()
-                
-                # Verificar cache em disco
-                cache_file = os.path.join(user_folder, 'processed_data.pkl')
-                if os.path.exists(cache_file):
-                    print(f"Ã°Å¸â€œÅ  Loading cached data for user {session['user_id'][:8]}...")
-                    df_music = pd.read_pickle(cache_file)
-                    app_cache[cache_key] = df_music
-                    return df_music
-                
-                # Processar ficheiros uploaded
-                print(f"Ã°Å¸â€œÅ  Processing uploaded files for user {session['user_id'][:8]}...")
-                df = load_user_data_from_files(user_folder)
-                df_music = filter_music(df)
-                
-                # Guardar cache
-                df_music.to_pickle(cache_file)
-                app_cache[cache_key] = df_music
-                session['data_loaded'] = True
-                
-                print(f"Ã¢Å“â€¦ {len(df_music):,} records processed from uploaded files")
-                return df_music
-                
-            except Exception as e:
-                print(f"Ã¢ÂÅ’ Error loading user data: {e}")
-                import traceback
-                traceback.print_exc()
-                app_cache[cache_key] = pd.DataFrame()
-        
-        return app_cache.get(cache_key, pd.DataFrame())
+        except Exception as e:
+            print(f"❌ Error in load_local_data: {e}")
+            import traceback
+            traceback.print_exc()
+            return pd.DataFrame()
     
     # Development mode (path hardcoded)
     else:
         if 'df_music_default' not in app_cache:
             try:
-                print("Ã°Å¸â€œÅ  Loading from hardcoded path (development mode)")
+                print("📁 Loading from hardcoded path (development mode)")
                 df = load_streaming_history()
                 df_music = filter_music(df)
                 app_cache['df_music_default'] = df_music
-                print(f"Ã¢Å“â€¦ {len(df_music):,} records loaded")
+                print(f"✅ {len(df_music):,} records loaded")
             except Exception as e:
-                print(f"Ã¢ÂÅ’ Error: {e}")
+                print(f"❌ Error: {e}")
                 app_cache['df_music_default'] = pd.DataFrame()
         
         return app_cache['df_music_default']
 
 
-def get_top_tracks_api_with_images(time_range, limit=50):
+
+def get_top_tracks_api_with_images(time_range, limit=100):
     """Get top tracks from Spotify API with images and IDs"""
     sp = get_spotify_client()
     if sp:
@@ -264,7 +286,7 @@ def search_track_get_id(track_name, artist_name):
         query = f'track:"{track_name}" artist:"{artist_name}"'
         print(f"Ã°Å¸â€Â Searching: {query}")
         
-        results = sp.search(q=query, type='track', limit=5)
+        results = sp.search(q=query, type='track', limit=100)
         
         if results['tracks']['items']:
             # PEGAR O PRIMEIRO ELEMENTO DO ARRAY
@@ -459,7 +481,7 @@ def repeat_spirals_max_single_day(df, n=50, time_period='all'):
 
     return [(row['track_key'], row['max_plays_single_period']) for _, row in result.iterrows()]
 
-def consecutive_days_listening(df, n=50):
+def consecutive_days_listening(df, n=100):
     """
     REPEAT DAYS: O nÃƒÂºmero mÃƒÂ¡ximo de DIAS SEGUIDOS que ouviste uma mÃƒÂºsica no perÃƒÂ­odo
     """
@@ -501,7 +523,7 @@ def consecutive_days_listening(df, n=50):
     return results[:n]
 
 
-def top_tracks_really_played(df, n=50):
+def top_tracks_really_played(df, n=100):
     """
     TOP TRACKS com APENAS plays INTENTIONAL (REALLY PLAYED)
     Filtra apenas mÃƒÂºsicas que tu escolheste ouvir
@@ -528,7 +550,7 @@ def top_tracks_really_played(df, n=50):
 
 
 
-def top_artists_really_played(df, n=50):
+def top_artists_really_played(df, n=100):
     """
     TOP ARTISTS com APENAS plays INTENTIONAL (REALLY PLAYED)
     Filtra apenas mÃƒÂºsicas que tu escolheste ouvir
@@ -554,7 +576,7 @@ def top_artists_really_played(df, n=50):
     return [(row['artist_key'], row['plays']) for _, row in artist_counts.iterrows()]
 
 
-def top_albums_really_played(df, n=50):
+def top_albums_really_played(df, n=100):
     """
     TOP ALBUMS com APENAS plays INTENTIONAL (REALLY PLAYED)
     Filtra apenas mÃƒÂºsicas que tu escolheste ouvir
@@ -982,7 +1004,8 @@ def home():
                     client_id=Config.SPOTIFY_CLIENT_ID,
                     client_secret=Config.SPOTIFY_CLIENT_SECRET,
                     redirect_uri=redirect_uri,
-                    scope = 'streaming user-read-private user-read-email user-top-read user-read-recently-played user-library-read playlist-modify-public playlist-modify-private user-modify-playback-state user-read-playback-state'
+                    scope = 'streaming user-read-private user-read-email user-top-read user-read-recently-played user-library-read playlist-modify-public playlist-modify-private user-modify-playback-state user-read-playback-state',
+                    cache_path='.cache-dev'
                 )
                 auth_url = auth_manager.get_authorize_url()
                 

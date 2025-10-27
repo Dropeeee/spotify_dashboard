@@ -461,7 +461,7 @@ def filter_music(df):
 # FUNÇÕES DE ANÁLISE ULTRA OTIMIZADAS (100% VECTORIZADAS)
 # ============================================================================
 
-def top_tracks_ultra_fast(df, n=20):
+def top_tracks_ultra_fast(df, n=10):
     """
     Top tracks ULTRA RÁPIDO - 100% vectorizado
     """
@@ -496,7 +496,7 @@ def top_tracks_ultra_fast(df, n=20):
     return result
 
 
-def top_albums_ultra_fast(df, n=20):
+def top_albums_ultra_fast(df, n=10):
     """Top albums ULTRA RÁPIDO - 100% vectorizado"""
     if df.empty:
         return pd.DataFrame()
@@ -530,7 +530,7 @@ def top_albums_ultra_fast(df, n=20):
     return result
 
 
-def top_artists_ultra_fast(df, n=20):
+def top_artists_ultra_fast(df, n=10):
     """Top artists ULTRA RÁPIDO - 100% vectorizado"""
     if df.empty:
         return pd.DataFrame()
@@ -605,7 +605,7 @@ def daily_history_optimized(df):
     return daily_counts
 
 
-def repeat_spirals_correct(df, n=20):
+def repeat_spirals_correct(df, n=10):
     """
     REPEAT SPIRALS: Número de dias únicos em que uma música foi ouvida
     """
@@ -631,7 +631,7 @@ def repeat_spirals_correct(df, n=20):
     return result
 
 
-def repeat_days_consecutive(df, n=20):
+def repeat_days_consecutive(df, n=10):
     """
     REPEAT DAYS: Número máximo de dias CONSECUTIVOS que uma música foi ouvida
     
@@ -687,7 +687,7 @@ def repeat_days_consecutive(df, n=20):
     return result
 
 
-def viciado_tracks_sessions(df, n=20):
+def viciado_tracks_sessions(df, n=10):
     """
     VICIADO TRACKS: Número de sessões onde a mesma música toca múltiplas vezes
     
@@ -743,7 +743,7 @@ def viciado_tracks_sessions(df, n=20):
 # ENRIQUECIMENTO COM SPOTIFY API (apenas top 5 para performance)
 # ============================================================================
 
-def enrich_with_spotify_metadata_fast(df, item_type='track', max_items=5):
+def enrich_with_spotify_metadata_fast(df, item_type='track', max_items=100):
     """
     Enriquece APENAS os top 5 items com metadata da API do Spotify
     Resto fica sem metadata para manter performance alta
@@ -831,43 +831,33 @@ def enrich_with_spotify_metadata_fast(df, item_type='track', max_items=5):
 # FUNÇÕES PRINCIPAIS - INTERFACE PÚBLICA
 # ============================================================================
 
-def top_tracks(df, n=20, include_metadata=True):
-    """Top tracks com opção de metadata da API"""
+def top_tracks(df, n=10, include_metadata=True):
     result = top_tracks_ultra_fast(df, n)
-    
     enhancer = get_spotify_enhancer()
     if include_metadata and not result.empty and enhancer and enhancer.api_available:
-
-        logger.info(f"🎵 A enriquecer top 5 músicas com Spotify API...")
-        result = enrich_with_spotify_metadata_fast(result, 'track', 5)
-    
+        logger.info(f"🎵 A enriquecer top {n} músicas com Spotify API...")
+        result = enrich_with_spotify_metadata_fast(result, 'track', n)
     return result
 
 
-def top_albums(df, n=20, include_metadata=True):
-    """Top albums com opção de metadata da API"""
+def top_albums(df, n=10, include_metadata=True):
     result = top_albums_ultra_fast(df, n)
-    
     enhancer = get_spotify_enhancer()
     if include_metadata and not result.empty and enhancer and enhancer.api_available:
-
-        logger.info(f"💿 A enriquecer top 5 álbuns com Spotify API...")
-        result = enrich_with_spotify_metadata_fast(result, 'album', 5)
-    
+        logger.info(f"💿 A enriquecer top {n} álbuns com Spotify API...")
+        result = enrich_with_spotify_metadata_fast(result, 'album', n)
     return result
 
 
-def top_artists(df, n=20, include_metadata=True):
-    """Top artists com opção de metadata da API"""
+
+def top_artists(df, n=10, include_metadata=True):
     result = top_artists_ultra_fast(df, n)
-    
     enhancer = get_spotify_enhancer()
     if include_metadata and not result.empty and enhancer and enhancer.api_available:
-
-        logger.info(f"🎤 A enriquecer top 5 artistas com Spotify API...")
-        result = enrich_with_spotify_metadata_fast(result, 'artist', 5)
-    
+        logger.info(f"🎤 A enriquecer top {n} artistas com Spotify API...")
+        result = enrich_with_spotify_metadata_fast(result, 'artist', n)
     return result
+
 
 
 def daily_history(df):
@@ -875,17 +865,17 @@ def daily_history(df):
     return daily_history_optimized(df)
 
 
-def repeat_spirals_optimized(df, n=20):
+def repeat_spirals_optimized(df, n=10):
     """Repeat spirals = dias únicos de audição"""
     return repeat_spirals_correct(df, n)
 
 
-def viciado_tracks_top20(df, n=20):
+def viciado_tracks_top20(df, n=10):
     """Viciado tracks = sessões com repetições"""
     return viciado_tracks_sessions(df, n)
 
 
-def repeat_days_top20(df, n=20):
+def repeat_days_top20(df, n=10):
     """Repeat days = dias consecutivos máximos"""
     return repeat_days_consecutive(df, n)
 
