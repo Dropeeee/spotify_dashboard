@@ -187,8 +187,14 @@ def load_local_data():
                         
                         if os.path.exists(cache_file):
                             print(f"📁 Loading cached data for user {session['user_id'][:8]}...")
+                            # ✅ ADICIONAR debug
+                            print(f"📁 Cache file: {cache_file}")
+                            print(f"📁 File size: {os.path.getsize(cache_file):,} bytes")
+                            print(f"📁 File modified: {datetime.fromtimestamp(os.path.getmtime(cache_file))}")
+                            
                             df_music = pd.read_pickle(cache_file)
                             app_cache[cache_key] = df_music
+                            print(f"✅ Loaded {len(df_music):,} records from cache")
                             return df_music
                         
                         # Processar ficheiros uploaded
@@ -838,19 +844,18 @@ def logout():
 @app.route('/api/artist_top_tracks')
 def get_artist_top_tracks():
     """Get top 10 tracks for a specific artist"""
-    artist_name = request.args.get('artist_name', '').strip()  # Ã¢Å“â€¦ STRIP aqui
-    
+    artist_name = request.args.get('artist_name', '').strip()
     df = load_local_data()
+    
     if df.empty:
         return jsonify({'success': False, 'error': 'No data available'})
-    
+
     try:
-        # Ã¢Å“â€¦ STRIP na coluna do DataFrame tambÃƒÂ©m
         df_artist = df[df['master_metadata_album_artist_name'].str.strip() == artist_name].copy()
         
         if df_artist.empty:
             return jsonify({'success': False, 'error': f'No tracks found for artist: {artist_name}'})
-        
+
         # Get top 10 tracks
         top_tracks_list = (
             df_artist.groupby('track_key', sort=False)
@@ -859,34 +864,33 @@ def get_artist_top_tracks():
             .sort_values('plays', ascending=False)
             .head(10)
         )
-        
+
         # Format result
         result = []
         for idx, (_, row) in enumerate(top_tracks_list.iterrows(), 1):
             track_key = row['track_key']
             track_name, artist = track_key.split(' - ', 1) if ' - ' in track_key else (track_key, artist_name)
-            
             result.append({
                 'rank': idx,
                 'track_key': track_key,
-                'name': track_name.strip(),  # Ã¢Å“â€¦ STRIP
-                'artist': artist.strip(),     # Ã¢Å“â€¦ STRIP
+                'name': track_name.strip(),
+                'artist': artist.strip(),
                 'plays': int(row['plays']),
                 'image_url': None
             })
-        
-        # Ã¢Å“â€¦ Enrich TODAS as 10 (nÃƒÂ£o sÃƒÂ³ top 5)
-        print(f"Ã°Å¸â€Â Enriquecendo TODAS as 10 mÃƒÂºsicas com imagens para artist: {artist_name}")
-        for i, item in enumerate(result):  # Ã¢Å“â€¦ TODAS
+
+        # ✅ ADICIONAR: Enriquecer TODAS as 10 com imagens (limite máximo 100)
+        print(f"🎵 Enriquecendo TODAS as 10 músicas com imagens para artist: {artist_name}")
+        for i, item in enumerate(result[:100]):  # Limite 100 (mas são só 10 aqui)
             try:
                 track_data = search_track_get_id(item['name'], item['artist'])
                 if track_data:
                     item['image_url'] = track_data.get('image_url')
-                    print(f"   Ã¢Å“â€¦ [{i+1}] {item['name']} - imagem encontrada")
+                    print(f"  ✅ [{i+1}] {item['name']} - imagem encontrada")
             except Exception as e:
-                print(f"   Ã¢ÂÅ’ Erro na track {i+1}: {e}")
+                print(f"  ❌ Erro na track {i+1}: {e}")
                 pass
-        
+
         return jsonify({
             'success': True,
             'data': result,
@@ -903,23 +907,21 @@ def get_artist_top_tracks():
 @app.route('/api/album_top_tracks')
 def get_album_top_tracks():
     """Get top 10 tracks for a specific album"""
-    album_name = request.args.get('album_name', '').strip()  # Ã¢Å“â€¦ STRIP aqui
-    
+    album_name = request.args.get('album_name', '').strip()
     df = load_local_data()
+    
     if df.empty:
         return jsonify({'success': False, 'error': 'No data available'})
-    
+
     try:
-        # Ã¢Å“â€¦ STRIP na coluna do DataFrame tambÃƒÂ©m
         df_album = df[df['master_metadata_album_album_name'].str.strip() == album_name].copy()
         
         if df_album.empty:
-            # Debug: Mostrar albums similares
             all_albums = df['master_metadata_album_album_name'].str.strip().unique()
             similar = [a for a in all_albums if album_name.lower() in a.lower()][:5]
-            print(f"Ã¢ÂÅ’ Album '{album_name}' nÃƒÂ£o encontrado. Similares: {similar}")
+            print(f"❌ Album '{album_name}' não encontrado. Similares: {similar}")
             return jsonify({'success': False, 'error': f'No tracks found for album: {album_name}'})
-        
+
         # Get top 10 tracks
         top_tracks_list = (
             df_album.groupby('track_key', sort=False)
@@ -928,34 +930,33 @@ def get_album_top_tracks():
             .sort_values('plays', ascending=False)
             .head(10)
         )
-        
+
         # Format result
         result = []
         for idx, (_, row) in enumerate(top_tracks_list.iterrows(), 1):
             track_key = row['track_key']
             track_name, artist = track_key.split(' - ', 1) if ' - ' in track_key else (track_key, 'Unknown')
-            
             result.append({
                 'rank': idx,
                 'track_key': track_key,
-                'name': track_name.strip(),  # Ã¢Å“â€¦ STRIP
-                'artist': artist.strip(),     # Ã¢Å“â€¦ STRIP
+                'name': track_name.strip(),
+                'artist': artist.strip(),
                 'plays': int(row['plays']),
                 'image_url': None
             })
-        
-        # Ã¢Å“â€¦ Enrich TODAS as 10 (nÃƒÂ£o sÃƒÂ³ top 5)
-        print(f"Ã°Å¸â€Â Enriquecendo TODAS as 10 mÃƒÂºsicas com imagens para album: {album_name}")
-        for i, item in enumerate(result):  # Ã¢Å“â€¦ TODAS
+
+        # ✅ ADICIONAR: Enriquecer TODAS as 10 com imagens (limite máximo 100)
+        print(f"🎵 Enriquecendo TODAS as 10 músicas com imagens para album: {album_name}")
+        for i, item in enumerate(result[:100]):  # Limite 100 (mas são só 10 aqui)
             try:
                 track_data = search_track_get_id(item['name'], item['artist'])
                 if track_data:
                     item['image_url'] = track_data.get('image_url')
-                    print(f"   Ã¢Å“â€¦ [{i+1}] {item['name']} - imagem encontrada")
+                    print(f"  ✅ [{i+1}] {item['name']} - imagem encontrada")
             except Exception as e:
-                print(f"   Ã¢ÂÅ’ Erro na track {i+1}: {e}")
+                print(f"  ❌ Erro na track {i+1}: {e}")
                 pass
-        
+
         return jsonify({
             'success': True,
             'data': result,
@@ -968,47 +969,57 @@ def get_album_top_tracks():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/dashboard')
+def dashboard():
+    """Dashboard route with data validation"""
+    # ✅ VALIDAR se tem dados
+    df = load_local_data()
+    
+    if df.empty:
+        # ❌ Sem dados, redirecionar para landing/home
+        print("⚠️ Dashboard: No data available, redirecting to home")
+        session['data_loaded'] = False
+        return redirect(url_for('home'))
+    
+    # ✅ Tem dados, renderizar dashboard
+    print(f"✅ Dashboard: Rendering with {len(df):,} records")
+    return render_template('dashboard.html', username=session.get('username', 'User'))
 
 
 @app.route('/')
 def home():
     """Landing page ou dashboard"""
-    
-    # Ã¢Å“â€¦ DEBUG
+    # ✅ DEBUG
     print(f"\n[HOME] files_uploaded: {session.get('files_uploaded')}")
     print(f"[HOME] data_loaded: {session.get('data_loaded')}")
     print(f"[HOME] spotify_authenticated: {session.get('spotify_authenticated')}\n")
     
     if session.get('files_uploaded'):
         if session.get('data_loaded') and session.get('spotify_authenticated'):
-            print("Ã¢â€ â€™ Rendering dashboard (multi-user mode)")
-            return render_template('dashboard.html', username=session.get('username', 'User'))
+            print("✅ Redirecting to /dashboard (multi-user mode)")
+            return redirect(url_for('dashboard'))  # ✅ REDIRECIONAR para /dashboard
         else:
-            print("Ã¢â€ â€™ Rendering landing (need auth or data)")
+            print("✅ Rendering landing (need auth or data)")
             return render_template('landing.html')
     else:
         # Dev mode
         df = load_local_data()
-        
         if not df.empty:
             sp = get_spotify_client()
-            
             if sp:
-                print("Ã¢â€ â€™ Rendering dashboard (dev mode)")
-                return render_template('dashboard.html', username=session.get('username', 'User'))
+                print("✅ Redirecting to /dashboard (dev mode)")
+                return redirect(url_for('dashboard'))  # ✅ REDIRECIONAR para /dashboard
             else:
-                # HTML inline para dev
-                redirect_uri = Config.REDIRECT_URI # Adicionar esta linha
-
+                # HTML inline para dev redirect
+                redirect_uri = Config.REDIRECT_URI
                 auth_manager = SpotifyOAuth(
                     client_id=Config.SPOTIFY_CLIENT_ID,
                     client_secret=Config.SPOTIFY_CLIENT_SECRET,
                     redirect_uri=redirect_uri,
-                    scope = 'streaming user-read-private user-read-email user-top-read user-read-recently-played user-library-read playlist-modify-public playlist-modify-private user-modify-playback-state user-read-playback-state',
+                    scope='streaming user-read-private user-read-email user-top-read user-read-recently-played user-library-read playlist-modify-public playlist-modify-private user-modify-playback-state user-read-playback-state',
                     cache_path='.cache-dev'
                 )
                 auth_url = auth_manager.get_authorize_url()
-                
                 return f'''
                 <!DOCTYPE html>
                 <html>
@@ -1370,10 +1381,25 @@ def api_repeat_spirals():
 
         # Search Spotify IDs for ALL tracks
         spirals_with_ids = enhance_data_with_spotify_ids(spirals_list, 'track')
+        
+        # ✅ ADICIONAR: Enriquecer com imagens até 100
+        print(f"🎵 Enriquecendo {min(len(spirals_with_ids), 100)} repeat spirals com imagens...")
+        for i, item in enumerate(spirals_with_ids[:100]):  # Limite 100
+            if not item.get('image_url'):  # Só se ainda não tem imagem
+                try:
+                    track_name, artist = item['track_key'].split(' - ', 1) if ' - ' in item['track_key'] else (item['track_key'], 'Unknown')
+                    track_data = search_track_get_id(track_name, artist)
+                    if track_data:
+                        item['image_url'] = track_data.get('image_url')
+                        print(f"  ✅ [{i+1}] {track_name} - imagem encontrada")
+                except Exception as e:
+                    print(f"  ❌ Erro no item {i+1}: {e}")
+                    pass
 
         return jsonify({'success': True, 'data': spirals_with_ids})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
 
 @app.route('/api/repeat_days')
 def api_repeat_days():
@@ -1386,7 +1412,6 @@ def api_repeat_days():
         filtered_df = apply_filters(df_music, year_filter, month_filter)
         limit = int(request.args.get('limit', 10))  # Default 10
         days_data = consecutive_days_listening(filtered_df, n=limit)
-
         
         days_list = []
         for track_key, consecutive_days in days_data:
@@ -1397,6 +1422,20 @@ def api_repeat_days():
         
         # Search Spotify IDs for ALL tracks
         days_with_ids = enhance_data_with_spotify_ids(days_list, 'track')
+        
+        # ✅ ADICIONAR: Enriquecer com imagens até 100
+        print(f"🎵 Enriquecendo {min(len(days_with_ids), 100)} repeat days com imagens...")
+        for i, item in enumerate(days_with_ids[:100]):  # Limite 100
+            if not item.get('image_url'):  # Só se ainda não tem imagem
+                try:
+                    track_name, artist = item['track_key'].split(' - ', 1) if ' - ' in item['track_key'] else (item['track_key'], 'Unknown')
+                    track_data = search_track_get_id(track_name, artist)
+                    if track_data:
+                        item['image_url'] = track_data.get('image_url')
+                        print(f"  ✅ [{i+1}] {track_name} - imagem encontrada")
+                except Exception as e:
+                    print(f"  ❌ Erro no item {i+1}: {e}")
+                    pass
         
         return jsonify({'success': True, 'data': days_with_ids})
     except Exception as e:
@@ -1422,31 +1461,25 @@ def api_create_custom_playlist():
     """Create custom playlist"""
     try:
         data = request.get_json()
-        
         title = data.get('title', 'Custom Playlist')
         playlist_type = data.get('type', 'tracks')
         track_keys = data.get('track_keys', [])
         filters = data.get('filters', {})
         
-        print(f"Ã°Å¸Å½Âµ Creating playlist: '{title}' ({playlist_type}) with {len(track_keys)} tracks")
+        print(f"📝 Creating playlist '{title}' ({playlist_type}) with {len(track_keys)} tracks")
         
-        # Validation
-        if not track_keys:
-            return jsonify({'success': False, 'error': 'No tracks provided'})
-        
-        # Get Spotify client
+        # ✅ ADICIONAR: Verificar se tem Spotify client
         sp = get_spotify_client()
         if not sp:
-            return jsonify({'success': False, 'error': 'Spotify not connected - please reconnect'})
+            return jsonify({'success': False, 'error': 'Spotify not connected - please reconnect'}), 401
         
-        # Test connection
+        # ✅ ADICIONAR: Obter user_id do Spotify
         try:
-            user_info = sp.current_user()
-            user_id = user_info['id']
-            print(f"Ã¢Å“â€¦ Connected as: {user_info.get('display_name', user_id)}")
+            user_id = sp.current_user()['id']
+            print(f"🎵 Spotify user_id: {user_id}")
         except Exception as e:
-            print(f"Ã¢ÂÅ’ User info error: {e}")
-            return jsonify({'success': False, 'error': f'Authentication error: {str(e)}'})
+            print(f"❌ Failed to get Spotify user: {e}")
+            return jsonify({'success': False, 'error': 'Failed to authenticate with Spotify'}), 401
         
         # Search tracks on Spotify
         track_uris = search_tracks_for_playlist(track_keys)
@@ -1504,6 +1537,112 @@ def api_create_custom_playlist():
     except Exception as e:
         print(f"Ã¢ÂÅ’ CRITICAL ERROR creating playlist: {e}")
         return jsonify({'success': False, 'error': f'Critical error: {str(e)}'})
+    
+@app.route('/api/play-track', methods=['POST'])
+def api_play_track():
+    """Play a track on user's active Spotify device"""
+    try:
+        data = request.get_json()
+        track_uri = data.get('track_uri') or data.get('uri')
+        
+        if not track_uri:
+            return jsonify({'success': False, 'error': 'No track URI provided'}), 400
+        
+        print(f"🎵 Playing track: {track_uri}")
+        
+        sp = get_spotify_client()
+        if not sp:
+            return jsonify({'success': False, 'error': 'Spotify not connected'}), 401
+        
+        # Get available devices
+        devices = sp.devices()
+        if not devices['devices']:
+            return jsonify({
+                'success': False, 
+                'error': 'No active Spotify device found. Please open Spotify on any device.'
+            }), 404
+        
+        # Play on first available device
+        device_id = devices['devices']['id']
+        sp.start_playback(device_id=device_id, uris=[track_uri])
+        
+        print(f"✅ Playing on device: {devices['devices']['name']}")
+        return jsonify({'success': True, 'message': 'Track playing'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error playing track: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/pause', methods=['POST'])
+def api_pause():
+    """Pause playback"""
+    try:
+        sp = get_spotify_client()
+        if not sp:
+            return jsonify({'success': False, 'error': 'Spotify not connected'}), 401
+        
+        sp.pause_playback()
+        print("⏸️ Playback paused")
+        return jsonify({'success': True, 'message': 'Playback paused'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error pausing: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/resume', methods=['POST'])
+def api_resume():
+    """Resume playback"""
+    try:
+        sp = get_spotify_client()
+        if not sp:
+            return jsonify({'success': False, 'error': 'Spotify not connected'}), 401
+        
+        sp.start_playback()
+        print("▶️ Playback resumed")
+        return jsonify({'success': True, 'message': 'Playback resumed'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error resuming: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/next', methods=['POST'])
+def api_next():
+    """Skip to next track"""
+    try:
+        sp = get_spotify_client()
+        if not sp:
+            return jsonify({'success': False, 'error': 'Spotify not connected'}), 401
+        
+        sp.next_track()
+        print("⏭️ Skipped to next track")
+        return jsonify({'success': True, 'message': 'Skipped to next'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error skipping: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/previous', methods=['POST'])
+def api_previous():
+    """Skip to previous track"""
+    try:
+        sp = get_spotify_client()
+        if not sp:
+            return jsonify({'success': False, 'error': 'Spotify not connected'}), 401
+        
+        sp.previous_track()
+        print("⏮️ Skipped to previous track")
+        return jsonify({'success': True, 'message': 'Skipped to previous'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error skipping: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     print("=" * 80)
