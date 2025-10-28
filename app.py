@@ -329,64 +329,76 @@ def search_track_get_id(track_name, artist_name):
 
 
 def enhance_data_with_spotify_ids(data, data_type='track'):
-    """Search Spotify IDs for all items"""
+    """Search Spotify IDs for all items - FIXED VERSION"""
     sp = get_spotify_client()
     if not sp:
         return data
     
     enhanced_data = []
+    print(f"🎵 Enriquecendo {min(len(data), 100)} {data_type}s com imagens...")
     
-    print(f"Ã°Å¸â€Â Enhancing {len(data)} {data_type}s with Spotify IDs...")
-    
-    for i, item in enumerate(data):
+    for i, item in enumerate(data[:100]):  # Limite 100
         enhanced_item = item.copy()
         
         try:
             if data_type == 'track':
-                track_name = item.get('enhanced_name') or item.get('track_key', '').split(' - ')[0] or 'Unknown'
-                artist_name = item.get('enhanced_artist') or item.get('track_key', '').split(' - ')[1] if ' - ' in item.get('track_key', '') else 'Unknown'
-                
-                print(f"  [{i+1}/{len(data)}] Searching: {track_name} - {artist_name}")
-                
-                track_data = search_track_get_id(track_name, artist_name)
-                if track_data:
-                    enhanced_item.update(track_data)
-                    print(f"    Ã¢Å“â€¦ Enhanced with ID: {track_data['id']}")
+                # ✅ CORRIGIR: Parse correto do track_key
+                track_key = item.get('track_key', '')
+                if ' - ' in track_key:
+                    track_name, artist_name = track_key.split(' - ', 1)
                 else:
-                    print(f"    Ã¢ÂÅ’ No ID found")
+                    track_name = track_key
+                    artist_name = 'Unknown'
+                
+                print(f"  [{i+1}/{min(len(data), 100)}] Searching: {track_name} - {artist_name}")
+                
+                track_data = search_track_get_id(track_name.strip(), artist_name.strip())
+                
+                if track_data:
+                    enhanced_item['id'] = track_data.get('id')
+                    enhanced_item['uri'] = track_data.get('uri')
+                    enhanced_item['spotify_url'] = track_data.get('spotify_url')
+                    enhanced_item['image_url'] = track_data.get('image_url')
+                    print(f"    ✅ Imagem encontrada")
+                else:
+                    print(f"    ❌ Não encontrado")
             
             elif data_type == 'artist':
-                artist_name = item.get('enhanced_name') or item.get('artist_key', '')
-                
+                artist_name = item.get('artist_key', '')
                 results = sp.search(q=f'artist:"{artist_name}"', type='artist', limit=1)
+                
                 if results['artists']['items']:
                     artist = results['artists']['items'][0]
                     enhanced_item['artist_id'] = artist['id']
                     enhanced_item['spotify_url'] = artist['external_urls']['spotify']
                     if artist['images']:
-                        enhanced_item['image_url'] = artist['images'][1]['url'] if len(artist['images']) > 1 else artist['images'][0]['url']
+                        enhanced_item['image_url'] = artist['images'][0]['url']
             
             elif data_type == 'album':
-                album_name = item.get('enhanced_name') or item.get('album_key', '')
-                
+                album_name = item.get('album_key', '')
                 results = sp.search(q=f'album:"{album_name}"', type='album', limit=1)
+                
                 if results['albums']['items']:
                     album = results['albums']['items'][0]
                     enhanced_item['album_id'] = album['id']
                     enhanced_item['spotify_url'] = album['external_urls']['spotify']
                     if album['images']:
-                        enhanced_item['image_url'] = album['images'][1]['url'] if len(album['images']) > 1 else album['images'][0]['url']
+                        enhanced_item['image_url'] = album['images'][0]['url']
         
         except Exception as e:
-            print(f"    Ã¢ÂÅ’ Error enhancing {item}: {e}")
+            print(f"    ❌ Erro: {e}")
         
         enhanced_data.append(enhanced_item)
     
-    # Count how many IDs we got
-    ids_found = sum(1 for item in enhanced_data if item.get('id') or item.get('artist_id') or item.get('album_id'))
-    print(f"Ã¢Å“â€¦ Enhanced {ids_found}/{len(data)} items with Spotify IDs")
+    # Se houver mais de 100, adicionar os restantes sem enriquecimento
+    if len(data) > 100:
+        enhanced_data.extend(data[100:])
+    
+    ids_found = sum(1 for item in enhanced_data if item.get('id') or item.get('image_url'))
+    print(f"✅ Enriquecidos {ids_found}/{len(data)} items com metadados\n")
     
     return enhanced_data
+
 
 def apply_filters(df, year_filter=None, month_filter=None):
     """Apply year and month filters"""
@@ -1563,10 +1575,10 @@ def api_play_track():
             }), 404
         
         # Play on first available device
-        device_id = devices['devices']['id']
+        device_id = devices['devices'][0]['id']       
         sp.start_playback(device_id=device_id, uris=[track_uri])
         
-        print(f"✅ Playing on device: {devices['devices']['name']}")
+        print(f"✅ Playing on device: {devices['devices'][0]['name']}")
         return jsonify({'success': True, 'message': 'Track playing'}), 200
         
     except Exception as e:
