@@ -1335,7 +1335,7 @@ def api_local_artists_really_played():
         filtered_df = apply_filters(df_music, year_filter, month_filter)
 
         # Get really played artists
-        alimit = int(request.args.get('limit', 10))  # Default 10
+        limit = int(request.args.get('limit', 10))  # Default 10
         artists_data = top_artists_really_played(filtered_df, n=limit)
 
 

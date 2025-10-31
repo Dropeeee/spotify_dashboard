@@ -465,13 +465,14 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Initializing dashboard');
             initializeDashboard();
-            setupEventListeners();
             loadAvailableYears();
             loadLocalData();
             
             // Enable user interaction detection
             document.addEventListener('click', enableAutoplay, { once: true });
             document.addEventListener('keydown', enableAutoplay, { once: true });
+
+            setupEventListeners();
         });
 
         function enableAutoplay() {
@@ -928,7 +929,13 @@
                 const endpoint = tracksIntentionalActive ? '/api/local_tracks_really_played' : '/api/local_tracks';
                 const params = new URLSearchParams(currentFilters);
                 params.append('limit', currentResultsLimit);  // ← ADICIONAR ISTO
-                const response = await fetch(endpoint + '?' + params);
+                const response = await fetch(endpoint + '?' + params, {
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
                 const data = await response.json();
                 if (data.success) {
                     currentDataSets.tracks = data.data;
@@ -1369,7 +1376,11 @@
         }
 
         async function loadDailyHistory() {
-            showLoadingState('daily-history-chart'); // ← ISTO
+            const container = document.getElementById('daily-history-chart');
+            
+            // Mostrar loading
+            showLoadingState('daily-history-chart');
+            
             try {
                 const params = new URLSearchParams(currentFilters);
                 const response = await fetch('/api/daily_history?' + params);
@@ -1378,9 +1389,14 @@
                 if (data.success && data.data.length > 0) {
                     const processedData = data.data.length > 365 ? groupDataByWeek(data.data) : data.data;
                     renderDailyHistoryChart(processedData);
+                } else {
+                    // Se não há dados, mostrar mensagem
+                    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">No listening history data available</div>';
                 }
             } catch (error) {
                 console.log('Error loading history:', error);
+                // Em caso de erro, mostrar mensagem
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #ff6b6b;">Error loading history</div>';
             }
         }
 
@@ -1542,7 +1558,7 @@
             data.forEach((item, index) => {
                 const trackName = item.enhanced_name || item.name || item.track_key.split(' - ')[0] || 'Unknown';
                 const artistName = item.enhanced_artist || item.artist || item.track_key.split(' - ')[1] || 'Unknown';
-                const imageUrl = item.image_url || item.imageurl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+                const imageUrl = item.image_url || 'https://via.placeholder.com/150x150/1a1a1a/00d4b8?text=No+Image'
                 const trackId = item.id || item.track_id || '';
                 
                 html += `
@@ -1556,12 +1572,17 @@
                         </div>
                         <div class="item-info">
                             <div class="item-name clickable-track" 
-                                 data-name="${trackName}"
-                                 data-artist="${artistName}"
-                                 data-track-key="${item.track_key || ''}"
-                                 data-track-id="${trackId}">
+                                data-type="track" 
+                                data-name="${trackName}"
+                                data-artist="${artistName}"
+                                data-spotify-url="${item.spotify_url || ''}"
+                                data-preview="${item.preview_url || ''}"
+                                data-track-key="${item.track_key || ''}"
+                                data-uri="${item.uri || ''}"
+                                data-track-id="${trackId}">
                                 ${trackName}
                             </div>
+
                             <div class="item-subtitle">${artistName}</div>
                         </div>
                         <span class="item-value">${item.max_single_day_plays || item.consecutive_days || item.unique_days} in 1 ${getPeriodLabel()}</span>
@@ -1603,12 +1624,17 @@
                         </div>
                         <div class="item-info">
                             <div class="item-name clickable-track" 
-                                 data-name="${trackName}"
-                                 data-artist="${artistName}"
-                                 data-track-key="${item.track_key || ''}"
-                                 data-track-id="${trackId}">
+                                data-type="track" 
+                                data-name="${trackName}"
+                                data-artist="${artistName}"
+                                data-spotify-url="${item.spotify_url || ''}"
+                                data-preview="${item.preview_url || ''}"
+                                data-track-key="${item.track_key || ''}"
+                                data-uri="${item.uri || ''}"
+                                data-track-id="${trackId}">
                                 ${trackName}
                             </div>
+
                             <div class="item-subtitle">${artistName}</div>
                         </div>
                         <button class="calendar-btn" 
@@ -1767,10 +1793,11 @@
                 let trackKeys = [];
                 
                 if (type === 'tracks') {
-                    trackKeys = data.map(item => item.track_key || `${item.name || 'Unknown'} - ${item.artist || 'Unknown'}`);
+                    trackKeys = data.slice(0, currentResultsLimit).map(item => item.track_key || `${item.name || 'Unknown'} - ${item.artist || 'Unknown'}`);
                 } else if (type === 'spirals' || type === 'days') {
-                    trackKeys = data.map(item => item.track_key || `${item.name || 'Unknown'} - ${item.artist || 'Unknown'}`);
+                    trackKeys = data.slice(0, currentResultsLimit).map(item => item.track_key || `${item.name || 'Unknown'} - ${item.artist || 'Unknown'}`);
                 }
+
 
                 
                 const response = await fetch('/api/create_custom_playlist', {
@@ -2147,15 +2174,17 @@
                         </div>
                         <div class="item-info">
                             <div class="item-name clickable-track" 
-                                data-type="track"
-                                data-uri="${uri}"
+                                data-type="track" 
                                 data-name="${trackName}"
                                 data-artist="${artistName}"
-                                data-preview="${previewUrl}"
-                                data-spotify-url="${spotifyUrl}"
+                                data-spotify-url="${item.spotify_url || ''}"
+                                data-preview="${item.preview_url || ''}"
+                                data-track-key="${item.track_key || ''}"
+                                data-uri="${item.uri || ''}"
                                 data-track-id="${trackId}">
                                 ${trackName}
                             </div>
+
                             <div class="item-subtitle">${artistName}</div>
                         </div>
                         <span class="item-value">${track.plays} plays</span>
