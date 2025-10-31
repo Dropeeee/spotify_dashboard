@@ -982,16 +982,13 @@
         }
 
         function getCompactEmbedUrl(trackId, name, artist) {
-            if (trackId && trackId !== 'null' && trackId !== '' && trackId !== 'None') {
-                console.log(`🎵 Using track embed: ${trackId}`);
-                return `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0&height=80`;
-            } else {
-                const cleanQuery = `${name} ${artist}`.trim();
-                const encodedQuery = encodeURIComponent(cleanQuery);
-                console.log(`🎵 Using search embed: ${cleanQuery}`);
-                return `https://open.spotify.com/embed/search/${encodedQuery}?utm_source=generator&theme=0&height=80`;
-            }
-        }
+    if (trackId && trackId !== 'null' && trackId !== '' && trackId !== 'None') {
+        return `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0&height=80`;
+    } else {
+        return `https://open.spotify.com/embed/search/${encodeURIComponent(name + ' ' + artist)}?utm_source=generator&theme=0&height=80`;
+    }
+}
+
 
 
         function loadBottomPlayerIFrame(embedUrl, name, artist) {
@@ -1553,102 +1550,79 @@
         }
 
         function renderRepeatSpiralsWithImages(data) {
-            const container = document.getElementById('repeat-spirals-list');
-            
-            let html = '';
-            data.forEach((item, index) => {
-                const trackName = item.enhanced_name || item.name || item.track_key.split(' - ')[0] || 'Unknown';
-                const artistName = item.enhanced_artist || item.artist || item.track_key.split(' - ')[1] || 'Unknown';
-                const imageUrl = item.image_url || 'https://via.placeholder.com/150x150/1a1a1a/00d4b8?text=No+Image'
-                const trackId = item.id || item.track_id || '';
-                
-                html += `
-                    <div class="item-row">
-                        <span class="rank">${index + 1}</span>
-                        <div class="item-image">
-                            <img src="${imageUrl}" 
-                                 alt="${trackName}" 
-                                 class="track-image"
-                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
-                        </div>
-                        <div class="item-info">
-                            <div class="item-name clickable-track" 
-                                data-type="track" 
-                                data-name="${trackName}"
-                                data-artist="${artistName}"
-                                data-spotify-url="${item.spotify_url || ''}"
-                                data-preview="${item.preview_url || ''}"
-                                data-track-key="${item.track_key || ''}"
-                                data-uri="${item.uri || ''}"
-                                data-track-id="${trackId}">
-                                ${trackName}
-                            </div>
-
-                            <div class="item-subtitle">${artistName}</div>
-                        </div>
-                        <span class="item-value">${item.max_single_day_plays || item.consecutive_days || item.unique_days} in 1 ${getPeriodLabel()}</span>
+    const container = document.getElementById('repeat-spirals-list');
+    let html = '';
+    data.forEach((item, index) => {
+        const trackName = item.enhanced_name || item.name || item.track_key.split(' - ')[0] || 'Unknown';
+        const artistName = item.enhanced_artist || item.artist || item.track_key.split(' - ')[1] || 'Unknown';
+        const imageUrl = item.image_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+        const trackId = item.id || item.track_id || '';
+        
+        html += `
+            <div class="item-row">
+                <span class="rank">${index + 1}</span>
+                <div class="item-image">
+                    <img src="${imageUrl}" alt="${trackName}" class="track-image"
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ite0xMiAyM0gyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
+                </div>
+                <div class="item-info">
+                    <div class="item-name clickable-track"
+                         data-type="track"
+                         data-name="${trackName}"
+                         data-artist="${artistName}"
+                         data-spotify-url="${item.spotify_url || ''}"
+                         data-preview="${item.preview_url || ''}"
+                         data-track-key="${item.track_key || ''}"
+                         data-uri="${item.uri || ''}"
+                         data-track-id="${trackId}">
+                        ${trackName}
                     </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
+                    <div class="item-subtitle">${artistName}</div>
+                </div>
+                <span class="item-value">${item.max_single_day_plays || 0}</span>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
 
-        function getPeriodLabel() {
-            const labels = {
-                'day': 'day',
-                'week': 'week',
-                'month': 'month'
-            };
-            return labels[currentSpiralsPeriod] || 'day';
-        }
-
-
-        function renderRepeatDaysWithImages(data) {
-            const container = document.getElementById('repeat-days-list');
-            
-            let html = '';
-            data.forEach((item, index) => {
-                const trackName = item.enhanced_name || item.name || item.track_key.split(' - ')[0] || 'Unknown';
-                const artistName = item.enhanced_artist || item.artist || item.track_key.split(' - ')[1] || 'Unknown';
-                const imageUrl = item.image_url || item.imageurl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
-                const trackId = item.id || item.track_id || '';
-                
-                html += `
-                    <div class="item-row">
-                        <span class="rank">${index + 1}</span>
-                        <div class="item-image">
-                            <img src="${imageUrl}" 
-                                 alt="${trackName}" 
-                                 class="track-image"
-                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
-                        </div>
-                        <div class="item-info">
-                            <div class="item-name clickable-track" 
-                                data-type="track" 
-                                data-name="${trackName}"
-                                data-artist="${artistName}"
-                                data-spotify-url="${item.spotify_url || ''}"
-                                data-preview="${item.preview_url || ''}"
-                                data-track-key="${item.track_key || ''}"
-                                data-uri="${item.uri || ''}"
-                                data-track-id="${trackId}">
-                                ${trackName}
-                            </div>
-
-                            <div class="item-subtitle">${artistName}</div>
-                        </div>
-                        <button class="calendar-btn" 
-                                title="Open calendar" 
-                                data-track-key="${item.track_key || ''}" 
-                                onclick="openCalendarFromButton(event)">+</button>
-                        <span class="item-value">${item.consecutive_days || item.unique_days} days</span>
+function renderRepeatDaysWithImages(data) {
+    const container = document.getElementById('repeat-days-list');
+    let html = '';
+    data.forEach((item, index) => {
+        const trackName = item.enhanced_name || item.name || item.track_key.split(' - ')[0] || 'Unknown';
+        const artistName = item.enhanced_artist || item.artist || item.track_key.split(' - ')[1] || 'Unknown';
+        const imageUrl = item.image_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAyMEgyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+        const trackId = item.id || item.track_id || '';
+        
+        html += `
+            <div class="item-row">
+                <span class="rank">${index + 1}</span>
+                <div class="item-image">
+                    <img src="${imageUrl}" alt="${trackName}" class="track-image"
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ite0xMiAyM0gyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
+                </div>
+                <div class="item-info">
+                    <div class="item-name clickable-track"
+                         data-type="track"
+                         data-name="${trackName}"
+                         data-artist="${artistName}"
+                         data-spotify-url="${item.spotify_url || ''}"
+                         data-preview="${item.preview_url || ''}"
+                         data-track-key="${item.track_key || ''}"
+                         data-uri="${item.uri || ''}"
+                         data-track-id="${trackId}">
+                        ${trackName}
                     </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
+                    <div class="item-subtitle">${artistName}</div>
+                </div>
+                <span class="item-value">${item.consecutive_days || 0}</span>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
 
         function renderDailyHistoryChart(data) {
             const dates = data.map(d => d.date);
