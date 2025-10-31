@@ -167,12 +167,22 @@ def get_spotify_client():
     
 def load_local_data():
     """Load data ISOLADO por utilizador OU de path local"""
-    # Multi-user mode (se tem user_id)
     if 'user_id' in session:
         try:
             user_folder = get_user_folder()
-            # ✅ VERIFICAR se existem ficheiros JSON em disco
-            json_files = [f for f in os.listdir(user_folder) if f.endswith('.json')]
+            
+            # ✅ ADICIONAR DEBUG
+            print(f"\n{'='*70}")
+            print(f"LOAD_LOCAL_DATA - User: {session['user_id'][:8]}...")
+            print(f"User folder: {user_folder}")
+            print(f"Folder exists: {os.path.exists(user_folder)}")
+            
+            if os.path.exists(user_folder):
+                all_files = os.listdir(user_folder)
+                json_files = [f for f in all_files if f.endswith('.json')]
+                print(f"All files: {all_files}")
+                print(f"JSON files: {json_files}")
+            print(f"{'='*70}\n")
             
             if json_files:
                 # ✅ Utilizador tem dados! Processar
@@ -194,6 +204,12 @@ def load_local_data():
                             
                             df_music = pd.read_pickle(cache_file)
                             app_cache[cache_key] = df_music
+                            
+                            if not df_music.empty:
+                                session['data_loaded'] = True
+                                session.modified = True
+                                print("✅ Session marked: data_loaded = True")
+                            
                             print(f"✅ Loaded {len(df_music):,} records from cache")
                             return df_music
                         
@@ -893,12 +909,17 @@ def get_artist_top_tracks():
 
         # ✅ ADICIONAR: Enriquecer TODAS as 10 com imagens (limite máximo 100)
         print(f"🎵 Enriquecendo TODAS as 10 músicas com imagens para artist: {artist_name}")
-        for i, item in enumerate(result[:100]):  # Limite 100 (mas são só 10 aqui)
+        for i, item in enumerate(result[:100]):
             try:
                 track_data = search_track_get_id(item['name'], item['artist'])
                 if track_data:
+                    # ADICIONAR TODOS OS CAMPOS NECESSÁRIOS
+                    item['id'] = track_data.get('id')
+                    item['uri'] = track_data.get('uri')
+                    item['spotify_url'] = track_data.get('spotify_url')
+                    item['preview_url'] = track_data.get('preview_url')
                     item['image_url'] = track_data.get('image_url')
-                    print(f"  ✅ [{i+1}] {item['name']} - imagem encontrada")
+                    print(f"  ✅ [{i+1}] {item['name']} - dados completos")
             except Exception as e:
                 print(f"  ❌ Erro na track {i+1}: {e}")
                 pass
@@ -959,12 +980,17 @@ def get_album_top_tracks():
 
         # ✅ ADICIONAR: Enriquecer TODAS as 10 com imagens (limite máximo 100)
         print(f"🎵 Enriquecendo TODAS as 10 músicas com imagens para album: {album_name}")
-        for i, item in enumerate(result[:100]):  # Limite 100 (mas são só 10 aqui)
+        for i, item in enumerate(result[:100]):
             try:
                 track_data = search_track_get_id(item['name'], item['artist'])
                 if track_data:
+                    # ADICIONAR TODOS OS CAMPOS NECESSÁRIOS
+                    item['id'] = track_data.get('id')
+                    item['uri'] = track_data.get('uri')
+                    item['spotify_url'] = track_data.get('spotify_url')
+                    item['preview_url'] = track_data.get('preview_url')
                     item['image_url'] = track_data.get('image_url')
-                    print(f"  ✅ [{i+1}] {item['name']} - imagem encontrada")
+                    print(f"  ✅ [{i+1}] {item['name']} - dados completos")
             except Exception as e:
                 print(f"  ❌ Erro na track {i+1}: {e}")
                 pass
@@ -1006,13 +1032,35 @@ def home():
     print(f"[HOME] data_loaded: {session.get('data_loaded')}")
     print(f"[HOME] spotify_authenticated: {session.get('spotify_authenticated')}\n")
     
+    # CÓDIGO NOVO
     if session.get('files_uploaded'):
-        if session.get('data_loaded') and session.get('spotify_authenticated'):
+        # ✅ VERIFICAR SE DADOS EXISTEM EM DISCO (não confiar só na session)
+        try:
+            df = load_local_data()
+            has_data = not df.empty
+        except:
+            has_data = False
+        
+        # ✅ Verificar autenticação Spotify
+        sp = get_spotify_client()
+        is_authenticated = sp is not None
+        
+        print(f"[HOME] Data check from disk: {has_data}")
+        print(f"[HOME] Spotify auth check: {is_authenticated}")
+        
+        # ✅ Se tem DADOS (em disco) E autenticação → dashboard
+        if has_data and is_authenticated:
+            # Garantir que session está atualizada
+            session['data_loaded'] = True
+            session['spotify_authenticated'] = True
+            session.modified = True
+            
             print("✅ Redirecting to /dashboard (multi-user mode)")
-            return redirect(url_for('dashboard'))  # ✅ REDIRECIONAR para /dashboard
+            return redirect(url_for('dashboard'))
         else:
-            print("✅ Rendering landing (need auth or data)")
+            print(f"⚠️ Rendering landing: has_data={has_data}, is_auth={is_authenticated}")
             return render_template('landing.html')
+
     else:
         # Dev mode
         df = load_local_data()
