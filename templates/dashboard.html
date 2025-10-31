@@ -983,15 +983,16 @@
 
         function getCompactEmbedUrl(trackId, name, artist) {
             if (trackId && trackId !== 'null' && trackId !== '' && trackId !== 'None') {
-                console.log(`🎵 Using compact embed with track ID: ${trackId}`);
-                return `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0&autoplay=1&height=80`;
+                console.log(`🎵 Using track embed: ${trackId}`);
+                return `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0&height=80`;
             } else {
-                console.log(`🎵 Using compact search embed: ${name} ${artist}`);
-                const cleanQuery = `${name} ${artist}`.replace(/[^\w\s]/g, ' ').trim();
+                const cleanQuery = `${name} ${artist}`.trim();
                 const encodedQuery = encodeURIComponent(cleanQuery);
-                return `https://open.spotify.com/embed/search/${encodedQuery}?utm_source=generator&theme=0&autoplay=1&height=80`;
+                console.log(`🎵 Using search embed: ${cleanQuery}`);
+                return `https://open.spotify.com/embed/search/${encodedQuery}?utm_source=generator&theme=0&height=80`;
             }
         }
+
 
         function loadBottomPlayerIFrame(embedUrl, name, artist) {
             const iframe = document.getElementById('bottom-spotify-iframe');
@@ -1653,6 +1654,8 @@
             const dates = data.map(d => d.date);
             const plays = data.map(d => d.plays);
 
+            document.getElementById('daily-history-chart').innerHTML = '';
+
             const trace = {
                 x: dates,
                 y: plays,
@@ -2177,10 +2180,10 @@
                                 data-type="track" 
                                 data-name="${trackName}"
                                 data-artist="${artistName}"
-                                data-spotify-url="${item.spotify_url || ''}"
-                                data-preview="${item.preview_url || ''}"
-                                data-track-key="${item.track_key || ''}"
-                                data-uri="${item.uri || ''}"
+                                data-spotify-url="${track.spotify_url || ''}"
+                                data-preview="${track.preview_url || ''}"
+                                data-track-key="${track.track_key || ''}"
+                                data-uri="${track.uri || ''}"
                                 data-track-id="${trackId}">
                                 ${trackName}
                             </div>
