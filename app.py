@@ -20,7 +20,8 @@ from data_processing import (
     daily_history,
     repeat_spirals_optimized,
     viciado_tracks_top20,
-    set_spotify_enhancer
+    set_spotify_enhancer,
+    enrich_with_spotify_metadata_fast
 )
 from config import Config
 
@@ -904,7 +905,11 @@ def get_artist_top_tracks():
                 'name': track_name.strip(),
                 'artist': artist.strip(),
                 'plays': int(row['plays']),
-                'image_url': None
+                'image_url': None,
+                'spotify_url': '',    # ← ADICIONA
+                'preview_url': '',    # ← ADICIONA
+                'uri': '',            # ← ADICIONA
+                'id': ''              # ← ADICIONA
             })
 
         # ✅ ADICIONAR: Enriquecer TODAS as 10 com imagens (limite máximo 100)
@@ -975,7 +980,11 @@ def get_album_top_tracks():
                 'name': track_name.strip(),
                 'artist': artist.strip(),
                 'plays': int(row['plays']),
-                'image_url': None
+                'image_url': None,
+                'spotify_url': '',    # ← ADICIONA
+                'preview_url': '',    # ← ADICIONA
+                'uri': '',            # ← ADICIONA
+                'id': ''              # ← ADICIONA
             })
 
         # ✅ ADICIONAR: Enriquecer TODAS as 10 com imagens (limite máximo 100)
@@ -1312,7 +1321,12 @@ def api_local_tracks_really_played():
         for track_key, plays in tracks_data:
             tracks_list.append({
                 'track_key': track_key,
-                'plays': int(plays)
+                'plays': plays,
+                'spotify_url': '',           # ← ADICIONA
+                'image_url': '',             # ← ADICIONA
+                'preview_url': '',           # ← ADICIONA
+                'uri': '',                   # ← ADICIONA
+                'id': ''                     # ← ADICIONA
             })
 
         # Search Spotify IDs for ALL tracks
@@ -1436,7 +1450,12 @@ def api_repeat_spirals():
         for track_key, max_single_day in spirals_data:
             spirals_list.append({
                 'track_key': track_key,
-                'max_single_day_plays': max_single_day
+                'max_single_day_plays': max_single_day,
+                'spotify_url': '',           # ← ADICIONA
+                'image_url': '',             # ← ADICIONA
+                'preview_url': '',           # ← ADICIONA
+                'uri': '',                   # ← ADICIONA
+                'id': ''                     # ← ADICIONA
             })
 
         # Search Spotify IDs for ALL tracks
@@ -1477,7 +1496,12 @@ def api_repeat_days():
         for track_key, consecutive_days in days_data:
             days_list.append({
                 'track_key': track_key,
-                'consecutive_days': consecutive_days
+                'consecutive_days': consecutive_days,
+                'spotify_url': '',           # ← ADICIONA
+                'image_url': '',             # ← ADICIONA
+                'preview_url': '',           # ← ADICIONA
+                'uri': '',                   # ← ADICIONA
+                'id': ''                     # ← ADICIONA
             })
         
         # Search Spotify IDs for ALL tracks
