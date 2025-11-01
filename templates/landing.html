@@ -505,6 +505,12 @@
                 return;
             }
             
+            // Desabilitar o botão enquanto carrega
+            const saveBtn = document.querySelector('.save-username-btn');
+            const originalText = saveBtn.textContent;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            
             fetch('/api/save-username', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -517,21 +523,42 @@
                     statusEl.className = 'success';
                     usernameSet = true;
                     
-                    document.getElementById('file-input').disabled = false;
-                    document.getElementById('upload-zone').classList.remove('disabled');
-                    document.getElementById('username-input').disabled = true;
-                    document.querySelector('.save-username-btn').disabled = true;
+                    // ✅ NOVO: Verificar se tem dados
+                    if (data.has_data) {
+                        // User já tem dados! Redireccionar direto
+                        console.log('✅ User já tem dados! Redirecionando para dashboard...');
+                        statusEl.textContent = `Welcome back, ${username}! Loading your data...`;
+                        
+                        setTimeout(() => {
+                            window.location.href = '/dashboard';
+                        }, 1500);
+                    } else {
+                        // User novo, pedir upload
+                        console.log('🆕 User novo, mostrar upload...');
+                        
+                        document.getElementById('file-input').disabled = false;
+                        document.getElementById('upload-zone').classList.remove('disabled');
+                        document.getElementById('username-input').disabled = true;
+                        document.querySelector('.save-username-btn').disabled = true;
+                        
+                        saveBtn.innerHTML = originalText;
+                    }
                 } else {
-                    statusEl.textContent = 'Error saving username';
+                    statusEl.textContent = 'Error saving username: ' + (data.error || 'Unknown error');
                     statusEl.className = 'error';
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalText;
                 }
             })
             .catch(e => {
                 console.error(e);
-                statusEl.textContent = 'Connection error';
+                statusEl.textContent = 'Connection error: ' + e.message;
                 statusEl.className = 'error';
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
             });
         }
+
         
         function handleFileSelect(event) {
             if (!usernameSet) {

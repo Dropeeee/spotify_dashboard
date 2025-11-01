@@ -10,6 +10,7 @@ import spotipy.util as util
 from datetime import datetime, timedelta
 import pandas as pd
 import json
+import hashlib
 from spotify_api import SpotifyEnhancer
 from data_processing import (
     load_streaming_history, 
@@ -39,6 +40,40 @@ def init_spotify_enhancer():
         set_spotify_enhancer(spotify_enhancer_instance)
         print(f"✅ SpotifyEnhancer inicializado (api_available={spotify_enhancer_instance.api_available})")
     return spotify_enhancer_instance
+
+USERS_DB_FILE = os.path.join(Config.UPLOAD_FOLDER, 'users_db.json')
+
+def load_users_db():
+    """Carrega mapeamento username → user_id"""
+    if os.path.exists(USERS_DB_FILE):
+        with open(USERS_DB_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def save_users_db(users_db):
+    """Guarda mapeamento username → user_id"""
+    os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+    with open(USERS_DB_FILE, 'w', encoding='utf-8') as f:
+        json.dump(users_db, f, indent=2)
+
+def get_or_create_user_id(username):
+    """
+    Retorna user_id existente para username, ou cria um novo
+    """
+    users_db = load_users_db()
+    
+    # Username já existe? Retornar user_id antigo
+    if username in users_db:
+        user_id = users_db[username]
+        print(f"✅ Username '{username}' já existe! user_id: {user_id[:8]}...")
+        return user_id
+    
+    # Username novo? Criar novo user_id
+    user_id = str(uuid.uuid4())
+    users_db[username] = user_id
+    save_users_db(users_db)
+    print(f"🆕 Novo username '{username}' criado! user_id: {user_id[:8]}...")
+    return user_id
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -669,25 +704,45 @@ def get_track_calendar_data(df, track_key):
 
 @app.route('/api/save-username', methods=['POST'])
 def save_username():
-    """Save username E criar user_id"""
+    """Save username E recuperar/criar user_id"""
     data = request.get_json()
     username = data.get('username', '').strip()
     
     if not username or len(username) < 2:
         return jsonify({'success': False, 'error': 'Invalid username'}), 400
     
-    # Ã¢Å“â€¦ CRIAR user_id AQUI (sÃƒÂ³ quando user guarda username)
-    if 'user_id' not in session:
-        session['user_id'] = str(uuid.uuid4())
-        print(f"\nÃ°Å¸â€ â€ NEW user_id created: {session['user_id']}")
+    # ✅ NOVO: Recuperar ou criar user_id baseado no username
+    user_id = get_or_create_user_id(username)
     
+    # Guardar na sessão
+    session['user_id'] = user_id
     session['username'] = username
     session.modified = True
     
-    print(f"Ã¢Å“â€¦ Username saved: {username}")
-    print(f"   user_id: {session['user_id'][:8]}...")
+    # Verificar se user já tem dados
+    user_folder = get_user_folder()
+    has_data = False
     
-    return jsonify({'success': True, 'username': username}), 200
+    if os.path.exists(user_folder):
+        json_files = [f for f in os.listdir(user_folder) if f.endswith('.json')]
+        pkl_file = os.path.join(user_folder, 'processed_data.pkl')
+        
+        if json_files or os.path.exists(pkl_file):
+            has_data = True
+            session['files_uploaded'] = True
+            print(f"✅ User '{username}' já tem dados! {len(json_files)} JSON files")
+    
+    print(f"✅ Username saved: {username}")
+    print(f"   user_id: {user_id[:8]}...")
+    print(f"   has_data: {has_data}")
+    
+    return jsonify({
+        'success': True, 
+        'username': username,
+        'has_data': has_data,  # ← NOVO: indica se precisa upload
+        'redirect_url': url_for('dashboard') if has_data else None
+    }), 200
+
 
 
 @app.route('/upload', methods=['POST'])
