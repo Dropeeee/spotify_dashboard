@@ -1655,24 +1655,6 @@ function renderRepeatDaysWithImages(data) {
         html += `
             <div class="item-row">
                 <span class="rank">${index + 1}</span>
-                <button onclick="openCalendarModal('${item.track_key}')" 
-                        style="
-                            background: rgba(0, 179, 159, 0.1);
-                            border: 1px solid rgba(0, 179, 159, 0.3);
-                            color: #00B39F;
-                            cursor: pointer;
-                            padding: 4px 8px;
-                            border-radius: 6px;
-                            font-size: 14px;
-                            transition: all 0.2s ease;
-                            display: flex;
-                            align-items: center;
-                            gap: 4px;
-                        "
-                        onmouseover="this.style.background='rgba(0, 179, 159, 0.2)'; this.style.borderColor='rgba(0, 179, 159, 0.6)';"
-                        onmouseout="this.style.background='rgba(0, 179, 159, 0.1)'; this.style.borderColor='rgba(0, 179, 159, 0.3)';">
-                    📅 View
-                </button>
 
                 <div class="item-image">
                     <img src="${imageUrl}" alt="${trackName}" class="track-image"
@@ -1692,6 +1674,26 @@ function renderRepeatDaysWithImages(data) {
                     </div>
                     <div class="item-subtitle">${artistName}</div>
                 </div>
+
+                <button onclick="openCalendarModal('${item.track_key}')" 
+                        style="
+                            background: rgba(0, 179, 159, 0.1);
+                            border: 1px solid rgba(0, 179, 159, 0.3);
+                            color: #00B39F;
+                            cursor: pointer;
+                            padding: 4px 8px;
+                            border-radius: 6px;
+                            font-size: 14px;
+                            transition: all 0.2s ease;
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                        "
+                        onmouseover="this.style.background='rgba(0, 179, 159, 0.2)'; this.style.borderColor='rgba(0, 179, 159, 0.6)';"
+                        onmouseout="this.style.background='rgba(0, 179, 159, 0.1)'; this.style.borderColor='rgba(0, 179, 159, 0.3)';">
+                    📅
+                </button>
+                
                 <span class="item-value">${item.consecutive_days || 0} days</span>
             </div>
         `;
