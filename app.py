@@ -1451,6 +1451,7 @@ def api_repeat_spirals():
             spirals_list.append({
                 'track_key': track_key,
                 'max_single_day_plays': max_single_day,
+                'time_period': time_period,
                 'spotify_url': '',           # ← ADICIONA
                 'image_url': '',             # ← ADICIONA
                 'preview_url': '',           # ← ADICIONA

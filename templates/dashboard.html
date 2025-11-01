@@ -1579,7 +1579,7 @@
                     </div>
                     <div class="item-subtitle">${artistName}</div>
                 </div>
-                <span class="item-value">${item.max_single_day_plays || 0}</span>
+                <span class="item-value">${item.max_single_day_plays || 0} plays in a ${item.time_period || 'day'}</span>
             </div>
         `;
     });
@@ -1598,6 +1598,10 @@ function renderRepeatDaysWithImages(data) {
         html += `
             <div class="item-row">
                 <span class="rank">${index + 1}</span>
+                <button onclick="openCalendarModal('${item.track_key}')" 
+                        style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 5px;">
+                    📅
+                </button>
                 <div class="item-image">
                     <img src="${imageUrl}" alt="${trackName}" class="track-image"
                          onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ite0xMiAyM0gyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
@@ -1616,7 +1620,7 @@ function renderRepeatDaysWithImages(data) {
                     </div>
                     <div class="item-subtitle">${artistName}</div>
                 </div>
-                <span class="item-value">${item.consecutive_days || 0}</span>
+                <span class="item-value">${item.consecutive_days || 0} days</span>
             </div>
         `;
     });
