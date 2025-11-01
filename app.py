@@ -263,7 +263,7 @@ def load_local_data():
 
 
 
-def get_top_tracks_api_with_images(time_range, limit=100):
+def get_top_tracks_api_with_images(time_range, limit=50):
     """Get top tracks from Spotify API with images and IDs"""
     sp = get_spotify_client()
     if sp:
@@ -309,7 +309,7 @@ def search_track_get_id(track_name, artist_name):
         query = f'track:"{track_name}" artist:"{artist_name}"'
         print(f"Ã°Å¸â€Â Searching: {query}")
         
-        results = sp.search(q=query, type='track', limit=100)
+        results = sp.search(q=query, type='track', limit=50)
         
         if results['tracks']['items']:
             # PEGAR O PRIMEIRO ELEMENTO DO ARRAY
