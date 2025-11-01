@@ -1089,6 +1089,63 @@
 
         // ========== CALENDAR FUNCTIONS ==========
 
+        function openCalendarModal(trackKey) {
+            console.log('🎵 Abrindo calendário para:', trackKey);
+            
+            // PASSO 1: Mostrar o modal IMEDIATAMENTE
+            const modal = document.getElementById('calendar-modal');
+            if (modal) {
+                modal.style.display = 'flex';
+                console.log('✅ Modal mostrado');
+            } else {
+                console.error('❌ Modal não encontrado');
+                return;
+            }
+            
+            // PASSO 2: Carregar dados do calendário
+            const url = `/api/track_calendar?track_key=${encodeURIComponent(trackKey)}`;
+            console.log('🔄 Carregando:', url);
+            
+            fetch(url)
+                .then(response => {
+                    console.log('📡 Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('📊 Dados recebidos:', data);
+                    
+                    if (data.success) {
+                        // Atualizar estado do calendário
+                        calendarState.data = data.calendar_data || {};
+                        calendarState.title = trackKey;
+                        calendarState.year = new Date().getFullYear();
+                        
+                        console.log('🎨 Renderizando calendário...');
+                        renderCalendarGrid();
+                        console.log('✅ Calendário renderizado');
+                    } else {
+                        console.error('❌ Erro nos dados:', data.error);
+                        alert('Erro ao carregar calendário: ' + (data.error || 'Desconhecido'));
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Erro ao fetchar:', error);
+                    alert('Erro ao abrir calendário: ' + error.message);
+                });
+        }
+
+        // FECHAR O MODAL quando clicar no X
+        document.addEventListener('DOMContentLoaded', function() {
+            const closeBtn = document.querySelector('#calendar-modal .close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    document.getElementById('calendar-modal').style.display = 'none';
+                    console.log('❌ Modal fechado');
+                });
+            }
+        });
+
+
         function openCalendarFromButton(event) {
             const trackKey = event.currentTarget.getAttribute('data-track-key');
             openCalendar(trackKey);
@@ -1599,9 +1656,24 @@ function renderRepeatDaysWithImages(data) {
             <div class="item-row">
                 <span class="rank">${index + 1}</span>
                 <button onclick="openCalendarModal('${item.track_key}')" 
-                        style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 5px;">
-                    📅
+                        style="
+                            background: rgba(0, 179, 159, 0.1);
+                            border: 1px solid rgba(0, 179, 159, 0.3);
+                            color: #00B39F;
+                            cursor: pointer;
+                            padding: 4px 8px;
+                            border-radius: 6px;
+                            font-size: 14px;
+                            transition: all 0.2s ease;
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                        "
+                        onmouseover="this.style.background='rgba(0, 179, 159, 0.2)'; this.style.borderColor='rgba(0, 179, 159, 0.6)';"
+                        onmouseout="this.style.background='rgba(0, 179, 159, 0.1)'; this.style.borderColor='rgba(0, 179, 159, 0.3)';">
+                    📅 View
                 </button>
+
                 <div class="item-image">
                     <img src="${imageUrl}" alt="${trackName}" class="track-image"
                          onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzAwQjM5RiIvPgo8cGF0aCBkPSJNMjAgMTJWMjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ite0xMiAyM0gyOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
