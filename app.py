@@ -4,6 +4,7 @@ import spotipy
 from werkzeug.utils import secure_filename
 import uuid
 import shutil
+import gzip  
 import glob
 from spotipy.oauth2 import SpotifyOAuth
 import spotipy.util as util
@@ -45,16 +46,26 @@ USERS_DB_FILE = os.path.join(Config.UPLOAD_FOLDER, 'users_db.json')
 
 def load_users_db():
     """Carrega mapeamento username → user_id"""
-    if os.path.exists(USERS_DB_FILE):
+    # Tenta carregar versão comprimida primeiro
+    compressed_file = USERS_DB_FILE + '.gz'
+    
+    if os.path.exists(compressed_file):
+        with gzip.open(compressed_file, 'rt', encoding='utf-8') as f:
+            return json.load(f)
+    elif os.path.exists(USERS_DB_FILE):
+        # Fallback: ficheiro antigo não comprimido
         with open(USERS_DB_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     return {}
 
+
 def save_users_db(users_db):
     """Guarda mapeamento username → user_id"""
     os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
-    with open(USERS_DB_FILE, 'w', encoding='utf-8') as f:
+    compressed_file = USERS_DB_FILE + '.gz'
+    with gzip.open(compressed_file, 'wt', encoding='utf-8') as f:
         json.dump(users_db, f, indent=2)
+
 
 def get_or_create_user_id(username):
     """
@@ -120,8 +131,13 @@ app_cache = {}
 
 
 def allowed_file(filename):
-    """Valida se ficheiro ÃƒÂ© .json"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'json'
+    """Valida se ficheiro é .json ou .json.gz"""
+    if '.' not in filename:
+        return False
+    ext = filename.rsplit('.', 1)[1].lower()
+    # Aceita .json ou .gz (para .json.gz)
+    return ext in ['json', 'gz']
+
 
 def get_user_folder():
     """Retorna pasta ÃƒÂºnica por utilizador"""
@@ -132,25 +148,34 @@ def get_user_folder():
     return user_folder
 
 def load_user_data_from_files(user_folder):
-    """Carrega dados de ficheiros JSON de uma pasta especÃƒÂ­fica"""
-    json_files = [f for f in os.listdir(user_folder) if f.endswith('.json')]
+    """Carrega dados de ficheiros JSON (comprimidos ou não) de uma pasta específica"""
+    # Aceita .json E .json.gz
+    json_files = [f for f in os.listdir(user_folder) 
+                  if f.endswith('.json') or f.endswith('.json.gz')]
     
     if not json_files:
         raise FileNotFoundError(f"No JSON files in {user_folder}")
     
-    print(f"Ã°Å¸â€œÅ  Loading {len(json_files)} JSON files from user folder...")
+    print(f"📁 Loading {len(json_files)} JSON files from user folder...")
     all_data = []
     
     for json_file in json_files:
         filepath = os.path.join(user_folder, json_file)
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                if isinstance(data, list):
-                    all_data.extend(data)
+            # Detecta se é comprimido ou não
+            if filepath.endswith('.gz'):
+                with gzip.open(filepath, 'rt', encoding='utf-8') as f:
+                    data = json.load(f)
+            else:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            
+            if isinstance(data, list):
+                all_data.extend(data)
         except Exception as e:
-            print(f"Ã¢ÂÅ’ Error loading {json_file}: {e}")
+            print(f"❌ Error loading {json_file}: {e}")
             continue
+
     
     if not all_data:
         raise ValueError("No data loaded from JSON files")
