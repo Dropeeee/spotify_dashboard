@@ -240,7 +240,7 @@ def load_local_data():
             
             if os.path.exists(user_folder):
                 all_files = os.listdir(user_folder)
-                json_files = [f for f in all_files if f.endswith('.json')]
+                json_files = [f for f in all_files if f.endswith('.json') or f.endswith('.json.gz')]
                 print(f"All files: {all_files}")
                 print(f"JSON files: {json_files}")
             print(f"{'='*70}\n")
