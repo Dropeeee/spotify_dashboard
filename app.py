@@ -772,7 +772,7 @@ def save_username():
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
-    """Upload de ficheiros JSON individuais"""
+    """Upload de ficheiros JSON individuais - COMPRIME AUTOMATICAMENTE"""
     if 'file' not in request.files:
         return jsonify(error='No file part'), 400
     
@@ -782,47 +782,68 @@ def upload_files():
     
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        user_folder = get_user_folder()
+        userfolder = get_user_folder()
         
-        # Se for .json, comprimir automaticamente
+        # ========== NOVO: Comprimir automaticamente ==========
         if filename.endswith('.json'):
             # Lê o ficheiro JSON
-            data = json.load(file.stream)
+            try:
+                data = json.load(file.stream)
+            except Exception as e:
+                print(f"❌ Error reading JSON: {e}")
+                return jsonify(error='Invalid JSON file'), 400
             
-            # Grava comprimido
+            # Grava COMPRIMIDO
             compressed_filename = filename + '.gz'
-            filepath = os.path.join(user_folder, compressed_filename)
-            with gzip.open(filepath, 'wt', encoding='utf-8') as f:
-                json.dump(data, f)
+            filepath = os.path.join(userfolder, compressed_filename)
             
-            original_size = len(json.dumps(data))
-            compressed_size = os.path.getsize(filepath)
-            reduction = (1 - compressed_size/original_size) * 100
+            try:
+                with gzip.open(filepath, 'wt', encoding='utf-8') as f:
+                    json.dump(data, f)
+                
+                # Stats
+                original_size = len(json.dumps(data))
+                compressed_size = os.path.getsize(filepath)
+                reduction = (1 - compressed_size/original_size) * 100
+                
+                print(f"✅ File uploaded & compressed: {compressed_filename}")
+                print(f"   Original: {original_size/1024/1024:.2f} MB")
+                print(f"   Compressed: {compressed_size/1024/1024:.2f} MB")
+                print(f"   Reduction: {reduction:.1f}%")
+                
+                return jsonify({
+                    'success': True,
+                    'filename': compressed_filename,
+                    'message': f'File uploaded & compressed ({reduction:.1f}% reduction)'
+                }), 200
             
-            print(f"✅ File uploaded & compressed: {compressed_filename}")
-            print(f"   Original: {original_size/1024/1024:.2f} MB")
-            print(f"   Compressed: {compressed_size/1024/1024:.2f} MB")
-            print(f"   Reduction: {reduction:.1f}%")
+            except Exception as e:
+                print(f"❌ Error compressing file: {e}")
+                return jsonify(error='Error compressing file'), 500
+        
+        elif filename.endswith('.json.gz'):
+            # Ficheiro já comprimido - apenas grava
+            filepath = os.path.join(userfolder, filename)
             
-            return jsonify({
-                'success': True,
-                'filename': compressed_filename,
-                'message': f'File uploaded & compressed ({reduction:.1f}% reduction)'
-            }), 200
+            try:
+                file.save(filepath)
+                
+                print(f"✅ Compressed file uploaded: {filename}")
+                return jsonify({
+                    'success': True,
+                    'filename': filename,
+                    'message': 'Compressed file uploaded successfully'
+                }), 200
+            
+            except Exception as e:
+                print(f"❌ Error saving compressed file: {e}")
+                return jsonify(error='Error saving file'), 500
         
         else:
-            # Ficheiro já comprimido (.json.gz)
-            filepath = os.path.join(user_folder, filename)
-            file.save(filepath)
-            
-            print(f"✅ Compressed file uploaded: {filename}")
-            return jsonify({
-                'success': True,
-                'filename': filename,
-                'message': 'Compressed file uploaded successfully'
-            }), 200
+            return jsonify(error='Invalid file type. Only .json or .json.gz allowed'), 400
     
     return jsonify(error='Invalid file type. Only .json or .json.gz allowed'), 400
+
 
 
 @app.route('/upload-complete', methods=['POST'])
