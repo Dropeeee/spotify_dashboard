@@ -782,7 +782,7 @@ def upload_files():
     
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        userfolder = get_user_folder()
+        user_folder = get_user_folder()
         
         # ========== NOVO: Comprimir automaticamente ==========
         if filename.endswith('.json'):
@@ -795,7 +795,7 @@ def upload_files():
             
             # Grava COMPRIMIDO
             compressed_filename = filename + '.gz'
-            filepath = os.path.join(userfolder, compressed_filename)
+            filepath = os.path.join(user_folder, compressed_filename)
             
             try:
                 with gzip.open(filepath, 'wt', encoding='utf-8') as f:
@@ -823,7 +823,7 @@ def upload_files():
         
         elif filename.endswith('.json.gz'):
             # Ficheiro já comprimido - apenas grava
-            filepath = os.path.join(userfolder, filename)
+            filepath = os.path.join(user_folder, filename)
             
             try:
                 file.save(filepath)
@@ -845,27 +845,33 @@ def upload_files():
     return jsonify(error='Invalid file type. Only .json or .json.gz allowed'), 400
 
 
-
 @app.route('/upload-complete', methods=['POST'])
 def upload_complete():
     """Marca upload completo e redireciona para auth"""
-    user_folder = get_user_folder()
-    json_files = [f for f in os.listdir(user_folder) if f.endswith('.json')]
+    try:
+        user_folder = get_user_folder()
+        # ← CORRIGIDO: aceita .json E .json.gz
+        json_files = [f for f in os.listdir(user_folder) if f.endswith('.json') or f.endswith('.json.gz')]
+        
+        if not json_files:
+            return jsonify({'error': 'No JSON files uploaded'}), 400
+        
+        session['files_uploaded'] = True
+        session['file_count'] = len(json_files)
+        session.modified = True
+        
+        print(f"✅ Upload complete: {len(json_files)} files")
+        
+        return jsonify({
+            'success': True,
+            'message': f'{len(json_files)} files uploaded',
+            'redirect_url': url_for('spotify_auth')
+        }), 200
     
-    if not json_files:
-        return jsonify({'error': 'No JSON files uploaded'}), 400
-    
-    session['files_uploaded'] = True
-    session['file_count'] = len(json_files)
-    session.modified = True
-    
-    print(f"Ã¢Å“â€¦ Upload complete: {len(json_files)} files")
-    
-    return jsonify({
-        'success': True,
-        'message': f'{len(json_files)} files uploaded',
-        'redirect_url': url_for('spotify_auth')
-    }), 200
+    except Exception as e:
+        print(f"❌ Error in upload_complete: {e}")
+        return jsonify(error=str(e)), 500
+
 
 @app.route('/spotify-auth')
 def spotify_auth():
@@ -875,12 +881,13 @@ def spotify_auth():
     
     cache_path = os.path.join(get_user_folder(), '.spotify_cache')
     
-    redirect_uri = Config.REDIRECT_URI  # Ã¢Å“â€¦ ADICIONA
+    # Usa o redirect_uri correto do Config
+    redirect_uri = Config.REDIRECT_URI
     
     auth_manager = SpotifyOAuth(
         client_id=Config.SPOTIFY_CLIENT_ID,
         client_secret=Config.SPOTIFY_CLIENT_SECRET,
-        redirect_uri=redirect_uri,  # Ã¢Å“â€¦ USA DINÃƒâ€šMICO
+        redirect_uri=redirect_uri,
         scope='user-top-read playlist-modify-public playlist-modify-private streaming user-read-private user-modify-playback-state user-read-playback-state',
         cache_path=cache_path,
         show_dialog=True
@@ -888,6 +895,7 @@ def spotify_auth():
     
     auth_url = auth_manager.get_authorize_url()
     return redirect(auth_url)
+
 
 @app.route('/callback')
 def callback():
