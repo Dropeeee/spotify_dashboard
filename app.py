@@ -23,6 +23,7 @@ from data_processing import (
     repeat_spirals_optimized,
     viciado_tracks_top20,
     set_spotify_enhancer,
+    get_spotify_enhancer,
     enrich_with_spotify_metadata_fast
 )
 from config import Config
@@ -366,29 +367,27 @@ def get_top_tracks_api_with_images(time_range, limit=50):
     return []
 
 def search_track_get_id(track_name, artist_name):
-    sp = get_spotify_client()
-    if not sp:
-        print(f"Ã¢ÂÅ’ No Spotify client available")
+    """Buscar track metadata usando SpotifyEnhancer (CLIENT CREDENTIALS GLOBAL)"""
+    enhancer = get_spotify_enhancer()
+    if not enhancer or not enhancer.api_available:
+        print(f"❌ SpotifyEnhancer not available")
         return None
     
     try:
-        # BUSCA SIMPLES - Usa o Spotify search normal
+        # Usar SpotifyEnhancer com Client Credentials
         query = f'track:"{track_name}" artist:"{artist_name}"'
-        print(f"Ã°Å¸â€Â Searching: {query}")
+        print(f"🎵 Searching (enhancer): {query}")
         
-        results = sp.search(q=query, type='track', limit=50)
+        results = enhancer.sp.search(q=query, type='track', limit=1)
         
         if results['tracks']['items']:
-            # PEGAR O PRIMEIRO ELEMENTO DO ARRAY
             track = results['tracks']['items'][0]
+            print(f"  ✅ Found: {track['name']} - {track['artists'][0]['name']}")
             
-            print(f"   Found: {track['name']} - {track['artists'][0]['name']}")
-            
-            # Get image URL com acesso correcto ao array
+            # Get image URL
             image_url = None
             if track['album']['images']:
                 images = track['album']['images']
-                # images ÃƒÂ© ARRAY, usa ÃƒÂ­ndice 1 ou 0
                 image_url = images[1]['url'] if len(images) > 1 else images[0]['url']
             
             return {
@@ -401,32 +400,33 @@ def search_track_get_id(track_name, artist_name):
                 'preview_url': track['preview_url']
             }
         
-        print(f"   Ã¢ÂÅ’ No results found")
+        print(f"  ❌ No results found")
         return None
-    
+        
     except Exception as e:
-        print(f"Ã¢ÂÅ’ Search error for '{track_name}': {e}")
+        print(f"❌ Search error for '{track_name}': {e}")
         import traceback
         traceback.print_exc()
         return None
 
 
 
+
 def enhance_data_with_spotify_ids(data, data_type='track'):
-    """Search Spotify IDs for all items - FIXED VERSION"""
-    sp = get_spotify_client()
-    if not sp:
+    """Search Spotify IDs for all items usando SpotifyEnhancer (CLIENT CREDENTIALS GLOBAL)"""
+    enhancer = get_spotify_enhancer()
+    if not enhancer or not enhancer.api_available:
+        print("❌ SpotifyEnhancer not available - returning data without metadata")
         return data
     
     enhanced_data = []
-    print(f"🎵 Enriquecendo {min(len(data), 100)} {data_type}s com imagens...")
+    print(f"🎵 Enriquecendo {min(len(data), 100)} {data_type}s com imagens (CLIENT CREDENTIALS)...")
     
     for i, item in enumerate(data[:100]):  # Limite 100
         enhanced_item = item.copy()
-        
         try:
             if data_type == 'track':
-                # ✅ CORRIGIR: Parse correto do track_key
+                # Parse track_key
                 track_key = item.get('track_key', '')
                 if ' - ' in track_key:
                     track_name, artist_name = track_key.split(' - ', 1)
@@ -436,6 +436,7 @@ def enhance_data_with_spotify_ids(data, data_type='track'):
                 
                 print(f"  [{i+1}/{min(len(data), 100)}] Searching: {track_name} - {artist_name}")
                 
+                # USA search_track_get_id que agora usa enhancer
                 track_data = search_track_get_id(track_name.strip(), artist_name.strip())
                 
                 if track_data:
@@ -443,14 +444,14 @@ def enhance_data_with_spotify_ids(data, data_type='track'):
                     enhanced_item['uri'] = track_data.get('uri')
                     enhanced_item['spotify_url'] = track_data.get('spotify_url')
                     enhanced_item['image_url'] = track_data.get('image_url')
-                    print(f"    ✅ Imagem encontrada")
+                    enhanced_item['preview_url'] = track_data.get('preview_url')
+                    print(f"  ✅ Imagem encontrada")
                 else:
-                    print(f"    ❌ Não encontrado")
+                    print(f"  ❌ Não encontrado")
             
             elif data_type == 'artist':
                 artist_name = item.get('artist_key', '')
-                results = sp.search(q=f'artist:"{artist_name}"', type='artist', limit=1)
-                
+                results = enhancer.sp.search(q=f'artist:"{artist_name}"', type='artist', limit=1)
                 if results['artists']['items']:
                     artist = results['artists']['items'][0]
                     enhanced_item['artist_id'] = artist['id']
@@ -460,8 +461,7 @@ def enhance_data_with_spotify_ids(data, data_type='track'):
             
             elif data_type == 'album':
                 album_name = item.get('album_key', '')
-                results = sp.search(q=f'album:"{album_name}"', type='album', limit=1)
-                
+                results = enhancer.sp.search(q=f'album:"{album_name}"', type='album', limit=1)
                 if results['albums']['items']:
                     album = results['albums']['items'][0]
                     enhanced_item['album_id'] = album['id']
@@ -470,7 +470,7 @@ def enhance_data_with_spotify_ids(data, data_type='track'):
                         enhanced_item['image_url'] = album['images'][0]['url']
         
         except Exception as e:
-            print(f"    ❌ Erro: {e}")
+            print(f"  ❌ Erro: {e}")
         
         enhanced_data.append(enhanced_item)
     
@@ -479,9 +479,10 @@ def enhance_data_with_spotify_ids(data, data_type='track'):
         enhanced_data.extend(data[100:])
     
     ids_found = sum(1 for item in enhanced_data if item.get('id') or item.get('image_url'))
-    print(f"✅ Enriquecidos {ids_found}/{len(data)} items com metadados\n")
+    print(f"✅ Enriquecidos {ids_found}/{len(data)} items com metadados (CLIENT CREDENTIALS)\n")
     
     return enhanced_data
+
 
 
 def apply_filters(df, year_filter=None, month_filter=None):
