@@ -195,21 +195,28 @@ def get_spotify_client():
     """Spotify client with all required scopes"""
     scope = 'user-top-read playlist-modify-public playlist-modify-private streaming user-read-private user-modify-playback-state user-read-playback-state'
     
-    if 'user_id' in session and session.get('files_uploaded'):
-        cache_path = os.path.join(get_user_folder(), '.spotify_cache')
+    # ✅ SEMPRE usa user_id se existir (remove validação files_uploaded)
+    if 'user_id' in session:
+        cache_path = os.path.join(
+            Config.UPLOAD_FOLDER,
+            session['user_id'],
+            '.spotify_cache'
+        )
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
     else:
         cache_path = '.cache-default'
-
+    
     try:
-        redirect_uri = Config.REDIRECT_URI  # Ã¢Å“â€¦ ADICIONA ESTA LINHA
-
+        redirect_uri = Config.REDIRECT_URI
+        
         auth_manager = SpotifyOAuth(
-        client_id=Config.SPOTIFY_CLIENT_ID,
-        client_secret=Config.SPOTIFY_CLIENT_SECRET,
-        redirect_uri=redirect_uri,
-        scope=scope,  # ✅ ADICIONAR esta linha
-        cache_path=cache_path  # ✅ ADICIONAR esta linha
-    )
+            client_id=Config.SPOTIFY_CLIENT_ID,
+            client_secret=Config.SPOTIFY_CLIENT_SECRET,
+            redirect_uri=redirect_uri,
+            scope=scope,
+            cache_path=cache_path
+        )
+
 
 
         
@@ -866,12 +873,20 @@ def upload_complete():
 @app.route('/spotify-auth')
 def spotify_auth():
     """Inicia OAuth flow"""
-    if not session.get('files_uploaded'):
+    # ✅ REMOVER validação files_uploaded - permite auth sempre
+    
+    # ✅ Validar apenas se user_id existe
+    if 'user_id' not in session:
+        print("⚠️ No user_id in session during /spotify-auth")
         return redirect(url_for('home'))
     
-    cache_path = os.path.join(get_user_folder(), '.spotify_cache')
+    cache_path = os.path.join(
+        Config.UPLOAD_FOLDER,
+        session['user_id'],
+        '.spotify_cache'
+    )
+    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
     
-    # Usa o redirect_uri correto do Config
     redirect_uri = Config.REDIRECT_URI
     
     auth_manager = SpotifyOAuth(
@@ -882,6 +897,7 @@ def spotify_auth():
         cache_path=cache_path,
         show_dialog=True
     )
+
     
     auth_url = auth_manager.get_authorize_url()
     return redirect(auth_url)
@@ -889,39 +905,37 @@ def spotify_auth():
 
 @app.route('/callback')
 def callback():
-    """OAuth callback - processa autenticaÃƒÂ§ÃƒÂ£o Spotify"""
+    """OAuth callback - processa autenticação Spotify"""
     code = request.args.get('code')
     
     if not code:
-        print("Ã¢ÂÅ’ No code in callback")
+        print("❌ No code in callback")
+        return redirect(url_for('home'))
+    
+    # ✅ Validar user_id SEMPRE
+    if 'user_id' not in session:
+        print("❌ CRITICAL: No user_id in session during callback!")
         return redirect(url_for('home'))
     
     # DEBUG
     print("\n" + "="*70)
     print("CALLBACK START")
     print("="*70)
-    print(f"user_id: {session.get('user_id', 'NONE')[:8] if session.get('user_id') else 'NONE'}...")
+    print(f"user_id: {session['user_id'][:8]}...")
     print(f"username: {session.get('username', 'NONE')}")
     print(f"files_uploaded: {session.get('files_uploaded', False)}")
     print("="*70)
     
-    # Cache path
-    if 'user_id' in session and session.get('files_uploaded'):
-        try:
-            user_folder = get_user_folder()
-            cache_path = os.path.join(user_folder, '.spotify_cache')
-            
-            # Verificar ficheiros
-            json_files = [f for f in os.listdir(user_folder) if f.endswith('.json')]
-            print(f"Ã°Å¸â€œÂ User folder: {user_folder}")
-            print(f"Ã°Å¸â€œâ€ž JSON files: {len(json_files)}")
-            
-        except Exception as e:
-            print(f"Ã¢ÂÅ’ Error: {e}")
-            cache_path = '.cache-default'
-    else:
-        cache_path = '.cache-default'
-        print("Ã°Å¸â€œÂ Using default cache")
+    # ✅ Cache path SEMPRE baseado em user_id (remove validação files_uploaded)
+    cache_path = os.path.join(
+        Config.UPLOAD_FOLDER,
+        session['user_id'],
+        '.spotify_cache'
+    )
+    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+    
+    print(f"📁 Cache path: {cache_path}")
+
     
     # OAuth
     redirect_uri = Config.REDIRECT_URI # Ã¢Å“â€¦ ADICIONA
